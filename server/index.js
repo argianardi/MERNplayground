@@ -8,10 +8,14 @@ import authRouter from './routes/authRouter.js';
 import connectDB from './config/db.js';
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Route
 app.use('/api/v1/auth', authRouter);
 
-// Error handling middleware
+// Error handling
 app.use(notFound);
 app.use(errorHandler);
 
