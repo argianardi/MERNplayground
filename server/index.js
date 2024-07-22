@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 const app = express();
@@ -11,6 +12,7 @@ import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Route
 app.use('/api/v1/auth', authRouter);
