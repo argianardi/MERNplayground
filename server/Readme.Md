@@ -105,6 +105,17 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Duplicate data error
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyPattern)[0];
+
+    res.status(400).json({
+      code: '400',
+      status: 'error',
+      message: `The ${field} already exists`,
+    });
+  }
+
   // default error response
   res.status(resStatusCode).json({
     code: resStatusCode.toString(),
@@ -432,4 +443,161 @@ Berikut langkah - langkah untuk membuat fitru register menggunakan jwt [ref](htt
    app.listen(PORT, () => {
      console.log(`Server running on port http://localhost:${PORT}`);
    });
+   ```
+
+## Fitur Login Menggunakan JWT
+
+1. Tambahkan Method Compare Password Model User <br/>
+   Tambahkan method comparePassword untuk membandingkan password yang di requst user (melalui body req) dengan password dari data user yang tersimpan di database.
+
+   ```js
+   // models/users.js
+
+   import mongoose, { Schema } from 'mongoose';
+   import validator from 'validator';
+   import bcrypt from 'bcryptjs';
+
+   const userSchema = new Schema({
+     name: {
+       type: String,
+       required: [true, 'Name is required'],
+       unique: [true, 'Name must be unique'],
+     },
+     email: {
+       type: String,
+       required: [true, 'Email is required'],
+       unique: [true, 'Email must be unique'],
+       validate: {
+         validator: validator.isEmail,
+         message: '{VALUE} is not a valid email',
+       },
+     },
+     password: {
+       type: String,
+       required: [true, 'Password is required'],
+       minLength: [6, 'Password must be at least 6 characters long'],
+     },
+     role: {
+       type: String,
+       enum: ['user', 'owner'],
+       default: 'user',
+     },
+   });
+
+   userSchema.pre('save', async function () {
+     const salt = await bcrypt.genSalt(10);
+     this.password = await bcrypt.hash(this.password, salt);
+   });
+
+   //----------------------------------------------------------------------------------
+   userSchema.methods.comparePassword = async function (reqBodyPassword) {
+     return await bcrypt.compare(reqBodyPassword, this.password);
+   };
+   //----------------------------------------------------------------------------------
+
+   const User = mongoose.model('User', userSchema);
+
+   export default User;
+   ```
+
+2. Buat Kontroler Untuk Login <br/>
+   Kontroler ini akan mengurus proses login yaitu validation dan juga akan membuat token JWT serta mengirimkannya dalam cookie.
+
+   ```js
+   // controllers/ authController.js
+
+   import jwt from 'jsonwebtoken';
+   import asyncHandler from '../middlewares/asyncHandler.js';
+   import User from '../models/users.js';
+
+   const signToken = (id) => {
+     return jwt.sign({ id }, process.env.JWT_SECRET, {
+       expiresIn: '6d',
+     });
+   };
+
+   const createSendResToken = (user, statusCode, res) => {
+     const token = signToken(user._id);
+     const isDev = process.env.NODE_ENV === 'development' ? false : true;
+     const cookieOption = {
+       expire: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
+       httpOnly: true,
+       security: isDev,
+     };
+
+     res.cookie('jwt', token, cookieOption);
+
+     user.password = undefined;
+
+     res.status(statusCode).json({
+       code: statusCode.toString(),
+       status: 'Success',
+       message: 'User created successfully',
+       data: user,
+     });
+   };
+
+   export const registerUser = asyncHandler(async (req, res) => {
+     const isOwner = (await User.countDocuments()) === 0;
+     const role = isOwner ? 'owner' : 'user';
+
+     const createUser = await User.create({
+       name: req.body.name,
+       email: req.body.email,
+       password: req.body.password,
+       role: role,
+     });
+
+     createSendResToken(createUser, 201, res);
+   });
+
+   //-------------------------------------------------------------------------------------------
+   export const loginUser = asyncHandler(async (req, res) => {
+     // Email validation
+     if (!req.body.email) {
+       res.status(400);
+       throw new Error('Please add an email');
+     }
+
+     // Password validation
+     if (!req.body.password) {
+       res.status(400);
+       throw new Error('Please add a password');
+     }
+
+     const userData = await User.findOne({ email: req.body.email });
+
+     if (userData && (await userData.comparePassword(req.body.password))) {
+       createSendResToken(userData, 200, res);
+     } else {
+       res.status(400);
+       throw new Error('Invalid credentials');
+     }
+   });
+   //-------------------------------------------------------------------------------------------
+   ```
+
+3. Tambahkan route baru untuk login menggunakan controller login tadi <br/>
+
+   ```js
+   // routes/authRoute.js
+
+   import express from 'express';
+   import { loginUser, registerUser } from '../controller/authController.js';
+
+   const router = express.Router();
+
+   router.post('/register', registerUser);
+   //-----------------------------------------------------------------------------------------
+   router.post('/login', loginUser);
+   //-----------------------------------------------------------------------------------------
+   router.get('/logout', (req, res) => {
+     res.send('Logout');
+   });
+
+   router.get('/getuser', (req, res) => {
+     res.send('Get User');
+   });
+
+   export default router;
    ```
