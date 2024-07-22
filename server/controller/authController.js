@@ -42,3 +42,26 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   createSendResToken(createUser, 201, res);
 });
+
+export const loginUser = asyncHandler(async (req, res) => {
+  // Email validation
+  if (!req.body.email) {
+    res.status(400);
+    throw new Error('Please add an email');
+  }
+
+  // Password validation
+  if (!req.body.password) {
+    res.status(400);
+    throw new Error('Please add a password');
+  }
+
+  const userData = await User.findOne({ email: req.body.email });
+
+  if (userData && (await userData.comparePassword(req.body.password))) {
+    createSendResToken(userData, 200, res);
+  } else {
+    res.status(400);
+    throw new Error('Invalid credentials');
+  }
+});
