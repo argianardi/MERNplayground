@@ -1,15 +1,11 @@
 import express from 'express';
-import User from '../models/users.js';
-import asyncHandler from '../middlewares/asyncHandler.js';
-import { registerUser } from '../controller/authController.js';
+import { loginUser, registerUser } from '../controller/authController.js';
 
 const router = express.Router();
 
 router.post('/register', registerUser);
 
-router.post('/login', (req, res) => {
-  res.send('Login');
-});
+router.post('/login', loginUser);
 
 router.get('/logout', (req, res) => {
   res.send('Logout');
