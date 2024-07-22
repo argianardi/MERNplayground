@@ -24,11 +24,23 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Duplicate data error
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyPattern)[0];
+
+    res.status(400).json({
+      code: '400',
+      status: 'error',
+      message: `The ${field} already exists`,
+    });
+  }
+
   // default error response
   res.status(resStatusCode).json({
     code: resStatusCode.toString(),
     status: 'error',
     message: message,
+    // error.stack ini hanya kusus untuk proses development karna message ini akan menunjukkan line error code kita
     stack: err.stack,
   });
 };
