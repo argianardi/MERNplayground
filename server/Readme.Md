@@ -978,7 +978,7 @@ kita akan membuat fitur untuk menambahkan produk baru ke database. Berikut adala
 
 ## Update Product
 
-Berikut langkah - langkahnya:
+Berikut langkah - langkahnya [ref](https://www.youtube.com/watch?v=Qe0Jbz2JnBI&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=15):
 
 - Buat logic untuk melakukan update product di bagian product controller
 
@@ -1089,7 +1089,7 @@ Berikut langkah - langkahnya:
 
 ## Delete Product
 
-Berikut langkah - langkahnya [ref]()
+Berikut langkah - langkahnya [ref](https://www.youtube.com/watch?v=Qe0Jbz2JnBI&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=15):
 
 - Buat logic untuk melakukan delete product di bagian product controller
 
@@ -1219,6 +1219,82 @@ Berikut langkah - langkahnya [ref]()
   //-----------------------------------------------------------------
   router.delete('/:id', DeleteProduct);
   //-----------------------------------------------------------------
+
+  export default router;
+  ```
+
+## Buat Authorization Berdasarkan Role
+
+Kita akan membahas cara menambahkan authorization berdasarkan role dalam aplikasi. Kita akan menambahkan middleware untuk melindungi rute tertentu berdasarkan berdasarka role user. [ref](https://www.youtube.com/watch?v=XHpGL2LTmTw&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=14)
+
+- Buat Owner Middleware:
+
+  - Middleware ini memeriksa apakah pengguna yang terautentikasi memiliki role 'owner'.
+  - Jika pengguna memiliki role 'owner', maka request akan dilanjutkan ke handler berikutnya.
+  - Jika tidak, middleware akan mengirimkan respons dengan status 401 (Unauthorized).
+
+    ```js
+    // middlewares/authMiddleware.js
+
+    import jwt from 'jsonwebtoken';
+    import User from '../models/users.js';
+    import asyncHandler from './asyncHandler.js';
+
+    export const protectedMiddleware = asyncHandler(async (req, res, next) => {
+      let token;
+      token = req.cookies.jwt;
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          req.user = await User.findById(decoded.id).select('-password');
+          next();
+        } catch (error) {
+          res.status(401);
+          throw new Error('Not authorized to access this route');
+        }
+      } else {
+        res.status(401);
+        throw new Error('Not Authorized, no token');
+      }
+    });
+
+    //---------------------------------------------------------------------------------------------------
+    export const ownerMiddleware = (req, res, next) => {
+      if (req?.user && req?.user?.role === 'owner') {
+        next();
+      } else {
+        res.status(401);
+        throw new Error('Not authorized as an owner');
+      }
+    };
+    //---------------------------------------------------------------------------------------------------
+    ```
+
+- Tambahkan owner middleware yang mengatur proteksi berdasarkan role tadi ke route yang ingin diproteksi<br/>
+
+  ```js
+  // routes/productRouter.js
+
+  import express from 'express';
+  import {
+    CreateProduct,
+    DeleteProduct,
+    GetAllProduct,
+    GetProductById,
+    UpdateProduct,
+  } from '../controller/productController.js';
+  import {
+    ownerMiddleware,
+    protectedMiddleware,
+  } from '../middlewares/authMidleware.js';
+
+  const router = express.Router();
+
+  router.post('/', protectedMiddleware, ownerMiddleware, CreateProduct);
+  router.get('/', protectedMiddleware, GetAllProduct);
+  router.get('/:id', protectedMiddleware, GetProductById);
+  router.put('/:id', protectedMiddleware, ownerMiddleware, UpdateProduct);
+  router.delete('/:id', protectedMiddleware, ownerMiddleware, DeleteProduct);
 
   export default router;
   ```
