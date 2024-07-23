@@ -975,3 +975,250 @@ kita akan membuat fitur untuk menambahkan produk baru ke database. Berikut adala
 
   export default router;
   ```
+
+## Update Product
+
+Berikut langkah - langkahnya:
+
+- Buat logic untuk melakukan update product di bagian product controller
+
+  ```js
+  // controllers/productControler.js
+
+  import mongoose from 'mongoose';
+  import asyncHandler from '../middlewares/asyncHandler.js';
+  import Product from '../models/products.js';
+
+  export const CreateProduct = asyncHandler(async (req, res) => {
+    const newProduct = await Product.create(req.body);
+
+    return res.status(201).json({
+      code: '201',
+      status: 'Scuccess',
+      message: 'Product created successfully',
+      data: newProduct,
+    });
+  });
+
+  export const GetAllProduct = asyncHandler(async (req, res) => {
+    const products = await Product.find();
+
+    return res.status(200).json({
+      code: '200',
+      status: 'Success',
+      message: 'Request was successful',
+      data: products,
+    });
+  });
+
+  export const GetProductById = asyncHandler(async (req, res) => {
+    if (!mongoose.isValidObjectId(req?.params?.id)) {
+      res.status(404);
+      throw new Error('Invalid ID format');
+    }
+
+    const product = await Product.findById(req?.params?.id);
+
+    if (!product) {
+      res.status(404);
+      throw new Error('ID not found');
+    }
+
+    return res.status(200).json({
+      code: '200',
+      status: 'Success',
+      message: 'Request was successful',
+      data: product,
+    });
+  });
+
+  //----------------------------------------------------------------------------------------
+  export const UpdateProduct = asyncHandler(async (req, res) => {
+    //   Check Id format
+    if (!mongoose.isValidObjectId(req?.params?.id)) {
+      res.status(404);
+      throw new Error('Invalid ID format');
+    }
+
+    const updateProduct = await Product.findByIdAndUpdate(
+      req?.params?.id,
+      req?.body,
+      { runValidators: true, new: true }
+    );
+
+    // check if product is not exist
+    if (!updateProduct) {
+      res.status(404);
+      throw new Error('ID not found');
+    }
+
+    return res.status(201).json({
+      code: '201',
+      status: 'Success',
+      message: 'Product updated successfully',
+      data: updateProduct,
+    });
+  });
+  //----------------------------------------------------------------------------------------
+  ```
+
+- Tambahkan router untuk Update Product menggunakan controller update product tadi
+
+  ```js
+  // routes/productRouter.js
+
+  import express from 'express';
+  import {
+    CreateProduct,
+    GetAllProduct,
+    GetProductById,
+    UpdateProduct,
+  } from '../controller/productController.js';
+
+  const router = express.Router();
+
+  router.post('/', CreateProduct);
+  router.get('/', GetAllProduct);
+  router.get('/:id', GetProductById);
+  //----------------------------------------------------------
+  router.put('/:id', UpdateProduct);
+  //----------------------------------------------------------
+
+  export default router;
+  ```
+
+## Delete Product
+
+Berikut langkah - langkahnya [ref]()
+
+- Buat logic untuk melakukan delete product di bagian product controller
+
+  ```js
+  // controllers/productController.js
+
+  import mongoose from 'mongoose';
+  import asyncHandler from '../middlewares/asyncHandler.js';
+  import Product from '../models/products.js';
+
+  export const CreateProduct = asyncHandler(async (req, res) => {
+    const newProduct = await Product.create(req.body);
+
+    return res.status(201).json({
+      code: '201',
+      status: 'Scuccess',
+      message: 'Product created successfully',
+      data: newProduct,
+    });
+  });
+
+  export const GetAllProduct = asyncHandler(async (req, res) => {
+    const products = await Product.find();
+
+    return res.status(200).json({
+      code: '200',
+      status: 'Success',
+      message: 'Request was successful',
+      data: products,
+    });
+  });
+
+  export const GetProductById = asyncHandler(async (req, res) => {
+    if (!mongoose.isValidObjectId(req?.params?.id)) {
+      res.status(404);
+      throw new Error('Invalid ID format');
+    }
+
+    const product = await Product.findById(req?.params?.id);
+
+    if (!product) {
+      res.status(404);
+      throw new Error('ID not found');
+    }
+
+    return res.status(200).json({
+      code: '200',
+      status: 'Success',
+      message: 'Request was successful',
+      data: product,
+    });
+  });
+
+  export const UpdateProduct = asyncHandler(async (req, res) => {
+    //   Check Id format
+    if (!mongoose.isValidObjectId(req?.params?.id)) {
+      res.status(404);
+      throw new Error('Invalid ID format');
+    }
+
+    const updateProduct = await Product.findByIdAndUpdate(
+      req?.params?.id,
+      req?.body,
+      { runValidators: true, new: true }
+    );
+
+    // check if product is not exist
+    if (!updateProduct) {
+      res.status(404);
+      throw new Error('ID not found');
+    }
+
+    return res.status(201).json({
+      code: '201',
+      status: 'Success',
+      message: 'Product updated successfully',
+      data: updateProduct,
+    });
+  });
+
+  //--------------------------------------------------------------------------------------------------------
+  export const DeleteProduct = asyncHandler(async (req, res) => {
+    //   Check Id format
+    if (!mongoose.isValidObjectId(req?.params?.id)) {
+      res.status(404);
+      throw new Error('Invalid ID format');
+    }
+
+    const deletedProduct = await Product.findByIdAndDelete(req?.params?.id);
+
+    // Check if product is not exist
+    if (!deletedProduct) {
+      res.status(404);
+      throw new Error('ID not found');
+    }
+
+    return res.status(201).json({
+      code: '200',
+      status: 'Success',
+      message: 'Product deleted successfully',
+      data: deletedProduct,
+    });
+  });
+  //--------------------------------------------------------------------------------------------------------
+  ```
+
+- Tambahkan router untuk delete Product menggunakan controller delete product tadi
+
+  ```js
+  // routes/productRouter.js
+
+  import express from 'express';
+  import {
+    CreateProduct,
+    DeleteProduct,
+    GetAllProduct,
+    GetProductById,
+    UpdateProduct,
+  } from '../controller/productController.js';
+
+  const router = express.Router();
+
+  router.post('/', CreateProduct);
+  router.get('/', GetAllProduct);
+  router.get('/:id', GetProductById);
+  router.put('/:id', UpdateProduct);
+  //-----------------------------------------------------------------
+  router.delete('/:id', DeleteProduct);
+  //-----------------------------------------------------------------
+
+  export default router;
+  ```
