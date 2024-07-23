@@ -772,7 +772,7 @@ Kita akan membahas cara melakukan proteksi endpoint, membuat fungsi logout, dan 
 
 ## Membuat Fitur Create Product
 
-kita akan membuat fitur untuk menambahkan produk baru ke database. Berikut adalah langkah-langkah yang diperlukan [ref](https://www.youtube.com/watch?v=tLs-dAsaxq0&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=18)
+kita akan membuat fitur untuk menambahkan produk baru ke database. Berikut adalah langkah-langkah yang diperlukan [ref](https://www.youtube.com/watch?v=tLs-dAsaxq0&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=18) [ref2](https://www.youtube.com/watch?v=39ReBTjqIjE&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=18):
 
 1. Membuat Schema Produk dengan menggunakan Mongoose.
 
@@ -893,3 +893,85 @@ kita akan membuat fitur untuk menambahkan produk baru ke database. Berikut adala
      console.log(`Server running on port http://localhost:${PORT}`);
    });
    ```
+
+## Fitur Get All Products dan Get Product By Id
+
+- Tambahkan Controller untuk Get All Products dan Get Product By Id<br/>
+  Tambahkan logic untuk Get All Products dan Get Product By ID.
+
+  ```js
+  // controllers/productController.js
+
+  import mongoose from 'mongoose';
+  import asyncHandler from '../middlewares/asyncHandler.js';
+  import Product from '../models/products.js';
+
+  export const CreateProduct = asyncHandler(async (req, res) => {
+    const newProduct = await Product.create(req.body);
+
+    return res.status(201).json({
+      code: '201',
+      status: 'Scuccess',
+      message: 'Product created successfully',
+      data: newProduct,
+    });
+  });
+
+  //-------------------------------------------------------------------------------------------
+  export const GetAllProduct = asyncHandler(async (req, res) => {
+    const products = await Product.find();
+
+    return res.status(200).json({
+      code: '200',
+      status: 'Success',
+      message: 'Request was successful',
+      data: products,
+    });
+  });
+
+  export const GetProductById = asyncHandler(async (req, res) => {
+    if (!mongoose.isValidObjectId(req?.params?.id)) {
+      res.status(404);
+      throw new Error('Invalid ID format');
+    }
+
+    const product = await Product.findById(req?.params?.id);
+
+    if (!product) {
+      res.status(404);
+      throw new Error('ID not found');
+    }
+
+    return res.status(200).json({
+      code: '200',
+      status: 'Success',
+      message: 'Request was successful',
+      data: product,
+    });
+  });
+  //-------------------------------------------------------------------------------------------
+  ```
+
+- Tambahkan Route untuk Get All Products dan Get Product By Id<br/>
+  Tambahkan route untuk menggunakan cotroller get all products dan get product by id tadi
+
+  ```js
+  // routes/productRouter.js
+
+  import express from 'express';
+  import {
+    CreateProduct,
+    GetAllProduct,
+    GetProductById,
+  } from '../controller/productController.js';
+
+  const router = express.Router();
+
+  router.post('/', CreateProduct);
+  //-------------------------------------------------------------------
+  router.get('/', GetAllProduct);
+  router.get('/:id', GetProductById);
+  //-------------------------------------------------------------------
+
+  export default router;
+  ```
