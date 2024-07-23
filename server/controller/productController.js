@@ -46,16 +46,51 @@ export const GetProductById = asyncHandler(async (req, res) => {
 });
 
 export const UpdateProduct = asyncHandler(async (req, res) => {
+  //   Check Id format
+  if (!mongoose.isValidObjectId(req?.params?.id)) {
+    res.status(404);
+    throw new Error('Invalid ID format');
+  }
+
   const updateProduct = await Product.findByIdAndUpdate(
     req?.params?.id,
     req?.body,
     { runValidators: true, new: true }
   );
 
+  // check if product is not exist
+  if (!updateProduct) {
+    res.status(404);
+    throw new Error('ID not found');
+  }
+
   return res.status(201).json({
     code: '201',
     status: 'Success',
     message: 'Product updated successfully',
     data: updateProduct,
+  });
+});
+
+export const DeleteProduct = asyncHandler(async (req, res) => {
+  //   Check Id format
+  if (!mongoose.isValidObjectId(req?.params?.id)) {
+    res.status(404);
+    throw new Error('Invalid ID format');
+  }
+
+  const deletedProduct = await Product.findByIdAndDelete(req?.params?.id);
+
+  // Check if product is not exist
+  if (!deletedProduct) {
+    res.status(404);
+    throw new Error('ID not found');
+  }
+
+  return res.status(201).json({
+    code: '200',
+    status: 'Success',
+    message: 'Product deleted successfully',
+    data: deletedProduct,
   });
 });
