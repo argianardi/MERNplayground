@@ -44,3 +44,18 @@ export const GetProductById = asyncHandler(async (req, res) => {
     data: product,
   });
 });
+
+export const UpdateProduct = asyncHandler(async (req, res) => {
+  const updateProduct = await Product.findByIdAndUpdate(
+    req?.params?.id,
+    req?.body,
+    { runValidators: true, new: true }
+  );
+
+  return res.status(201).json({
+    code: '201',
+    status: 'Success',
+    message: 'Product updated successfully',
+    data: updateProduct,
+  });
+});
