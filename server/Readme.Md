@@ -447,6 +447,8 @@ Berikut langkah - langkah untuk membuat fitru register menggunakan jwt [ref](htt
 
 ## Fitur Login Menggunakan JWT
 
+Berikut langkah - langkahnya [ref](https://www.youtube.com/watch?v=ADLwHJButZ0&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=20):
+
 1. Tambahkan Method Compare Password Model User <br/>
    Tambahkan method comparePassword untuk membandingkan password yang di requst user (melalui body req) dengan password dari data user yang tersimpan di database.
 
@@ -600,4 +602,294 @@ Berikut langkah - langkah untuk membuat fitru register menggunakan jwt [ref](htt
    });
 
    export default router;
+   ```
+
+## Proteksi endpoint, Logout, dan Get User
+
+Kita akan membahas cara melakukan proteksi endpoint, membuat fungsi logout, dan mengambil data user yang sedang login menggunakan [JWT](https://www.npmjs.com/package/jsonwebtoken). Kita harus membuat controller, middleware, dan route yang diperlukan [ref](https://www.youtube.com/watch?v=fEoI93Z3Efo&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=19)
+
+- authController <br/>
+  Pertama, kita akan membuat beberapa fungsi di authController untuk registrasi, login, mendapatkan user yang sedang login, dan logout.
+
+  ```js
+  // controllers/authController.js
+
+  import jwt from 'jsonwebtoken';
+  import asyncHandler from '../middlewares/asyncHandler.js';
+  import User from '../models/users.js';
+
+  const signToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
+      expiresIn: '6d',
+    });
+  };
+
+  const createSendResToken = (user, statusCode, res) => {
+    const token = signToken(user._id);
+    const isDev = process.env.NODE_ENV === 'development' ? false : true;
+    const cookieOption = {
+      expire: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
+      httpOnly: true,
+      security: isDev,
+    };
+
+    res.cookie('jwt', token, cookieOption);
+
+    user.password = undefined;
+
+    res.status(statusCode).json({
+      code: statusCode.toString(),
+      status: 'Success',
+      message: 'User created successfully',
+      data: user,
+    });
+  };
+
+  export const registerUser = asyncHandler(async (req, res) => {
+    const isOwner = (await User.countDocuments()) === 0;
+    const role = isOwner ? 'owner' : 'user';
+
+    const createUser = await User.create({
+      name: req.body.name,
+      email: req.body.email,
+      password: req.body.password,
+      role: role,
+    });
+
+    createSendResToken(createUser, 201, res);
+  });
+
+  export const loginUser = asyncHandler(async (req, res) => {
+    // Email validation
+    if (!req.body.email) {
+      res.status(400);
+      throw new Error('Please add an email');
+    }
+
+    // Password validation
+    if (!req.body.password) {
+      res.status(400);
+      throw new Error('Please add a password');
+    }
+
+    const userData = await User.findOne({ email: req.body.email });
+
+    if (userData && (await userData.comparePassword(req.body.password))) {
+      createSendResToken(userData, 200, res);
+    } else {
+      res.status(400);
+      throw new Error('Invalid credentials');
+    }
+  });
+
+  //--------------------------------------------------------------------------------------------------------------
+  export const getCurrentUser = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id).select('-password');
+
+    if (user) {
+      return res.status(200).json({
+        code: '200',
+        status: 'Success',
+        message: 'Request was successful.',
+        data: user,
+      });
+    } else {
+      res.status(404);
+      throw new Error('User not found');
+    }
+  });
+
+  export const logoutUser = async (req, res) => {
+    res.cookie('jwt', '', {
+      httpOnly: true,
+      expires: new Date(Date.now()),
+    });
+
+    res.status(200).json({
+      message: 'Logout Berhasil',
+    });
+  };
+  //--------------------------------------------------------------------------------------------------------------
+  ```
+
+- Membuat protectedMiddleware<br/>
+  Middleware ini akan melindungi endpoint yang hanya bisa diakses oleh user yang sudah login.
+
+  ```js
+  // middlewares/authMiddleware.js
+
+  import jwt from 'jsonwebtoken';
+  import User from '../models/users.js';
+  import asyncHandler from './asyncHandler.js';
+
+  export const protectedMiddleware = asyncHandler(async (req, res, next) => {
+    let token;
+    token = req.cookies.jwt;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = await User.findById(decoded.id).select('-password');
+        next();
+      } catch (error) {
+        res.status(401);
+        throw new Error('Not authorized to access this route');
+      }
+    } else {
+      res.status(401);
+      throw new Error('Not Authorized, no token');
+    }
+  });
+  ```
+
+- Mengupdate authRoutes <br/>
+  Tambahkan route untuk registrasi, login, logout, dan mengambil user yang sedang login.
+
+  ```js
+  // routes/authRouter.js
+  import express from 'express';
+  import {
+    getCurrentUser,
+    loginUser,
+    logoutUser,
+    registerUser,
+  } from '../controller/authController.js';
+  import { protectedMiddleware } from '../middlewares/authMidleware.js';
+
+  const router = express.Router();
+
+  router.post('/register', registerUser);
+
+  router.post('/login', loginUser);
+
+  //------------------------------------------------------------------------------------------------
+  router.get('/logout', protectedMiddleware, logoutUser);
+
+  router.get('/getuser', protectedMiddleware, getCurrentUser);
+  //------------------------------------------------------------------------------------------------
+
+  export default router;
+  ```
+
+## Membuat Fitur Create Product
+
+kita akan membuat fitur untuk menambahkan produk baru ke database. Berikut adalah langkah-langkah yang diperlukan [ref](https://www.youtube.com/watch?v=tLs-dAsaxq0&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=18)
+
+1. Membuat Schema Produk dengan menggunakan Mongoose.
+
+   ```js
+   // models/products.js
+   import mongoose, { Schema } from 'mongoose';
+
+   const productSchema = new Schema({
+     name: {
+       type: String,
+       required: [true, 'Name is required'],
+       unique: [true, 'Name is already taken'],
+     },
+     price: {
+       type: Number,
+       required: [true, 'Price is required'],
+     },
+     description: {
+       type: String,
+       required: [true, 'Description is required'],
+     },
+     image: {
+       type: String,
+       default: null,
+     },
+     category: {
+       type: String,
+       required: [true, 'Category is required'],
+       enum: ['Sepatu', 'Kemeja', 'Baju', 'Celana'],
+     },
+     stock: {
+       type: Number,
+       default: 0,
+     },
+   });
+
+   const Product = mongoose.model('Product', productSchema);
+   export default Product;
+   ```
+
+2. Buat Controller untuk menambahkan data produk baru ke database.
+
+   ```js
+   // controllers/productController.js
+
+   import asyncHandler from '../middlewares/asyncHandler.js';
+   import Product from '../models/products.js';
+
+   export const CreateProduct = asyncHandler(async (req, res) => {
+     const newProduct = await Product.create(req.body);
+
+     return res.status(201).json({
+       code: '201',
+       status: 'Scuccess',
+       message: 'Product created successfully',
+       data: newProduct,
+     });
+   });
+   ```
+
+3. Buat Router untuk Product untuk menghandle request ke endpoint product.
+
+   ```js
+   // routes/productRouter.js
+
+   import express from 'express';
+   import { CreateProduct } from '../controller/productController.js';
+
+   const router = express.Router();
+
+   router.post('/', CreateProduct);
+
+   export default router;
+   ```
+
+4. Tambahkan router product tadi ke File Entry Point agar bisa menggunakan router product yang telah kita buat.
+
+   ```js
+   // index.js
+
+   import express from 'express';
+   import dotenv from 'dotenv';
+   import cookieParser from 'cookie-parser';
+
+   dotenv.config();
+   const app = express();
+
+   import connectDB from './config/db.js';
+   import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
+   import authRouter from './routes/authRouter.js';
+   //--------------------------------------------------------------------------------------
+   import productRouter from './routes/productRouter.js';
+   //--------------------------------------------------------------------------------------
+
+   // Middleware
+   app.use(express.json());
+   app.use(express.urlencoded({ extended: true }));
+   app.use(cookieParser());
+
+   // Route
+   app.use('/api/v1/auth', authRouter);
+   //--------------------------------------------------------------------------------------
+   app.use('/api/v1/products', productRouter);
+   //--------------------------------------------------------------------------------------
+
+   // Error handling
+   app.use(notFound);
+   app.use(errorHandler);
+
+   // Connect DB
+   connectDB();
+
+   // Port
+   const PORT = process.env.PORT || 3010;
+
+   // Server
+   app.listen(PORT, () => {
+     console.log(`Server running on port http://localhost:${PORT}`);
+   });
    ```
