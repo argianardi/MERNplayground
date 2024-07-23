@@ -6,14 +6,17 @@ import {
   GetProductById,
   UpdateProduct,
 } from '../controller/productController.js';
-import { protectedMiddleware } from '../middlewares/authMidleware.js';
+import {
+  ownerMiddleware,
+  protectedMiddleware,
+} from '../middlewares/authMidleware.js';
 
 const router = express.Router();
 
-router.post('/', CreateProduct);
+router.post('/', ownerMiddleware, CreateProduct);
 router.get('/', protectedMiddleware, GetAllProduct);
 router.get('/:id', protectedMiddleware, GetProductById);
-router.put('/:id', protectedMiddleware, UpdateProduct);
-router.delete('/:id', protectedMiddleware, DeleteProduct);
+router.put('/:id', protectedMiddleware, ownerMiddleware, UpdateProduct);
+router.delete('/:id', protectedMiddleware, ownerMiddleware, DeleteProduct);
 
 export default router;
