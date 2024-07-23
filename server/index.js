@@ -5,9 +5,10 @@ import cookieParser from 'cookie-parser';
 dotenv.config();
 const app = express();
 
-import authRouter from './routes/authRouter.js';
 import connectDB from './config/db.js';
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
+import authRouter from './routes/authRouter.js';
+import productRouter from './routes/productRouter.js';
 
 // Middleware
 app.use(express.json());
@@ -16,6 +17,7 @@ app.use(cookieParser());
 
 // Route
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/products', productRouter);
 
 // Error handling
 app.use(notFound);
