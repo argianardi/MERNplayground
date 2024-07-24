@@ -14,6 +14,7 @@ import productRouter from './routes/productRouter.js';
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(express.static('./public'));
 
 // Route
 app.use('/api/v1/auth', authRouter);
