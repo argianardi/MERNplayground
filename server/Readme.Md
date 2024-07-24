@@ -34,6 +34,95 @@ Berikut adalah penjelasan lebih lanjut:
 - Form HTML:
   - Ketika form dengan method POST dan Content-Type diset ke application/x-www-form-urlencoded dikirimkan, data form akan dikirimkan dalam format ini.
 
+### Path
+
+[Path](https://nodejs.org/api/path.html) adalah modul bawaan Node.js yang menyediakan utilitas untuk bekerja dengan path file dan direktori. Dengan mengimpor modul ini, kita bisa menggunakan berbagai metode untuk memanipulasi path file. Path digunakan untuk membantu dalam menangani dan membangun path file secara aman dan konsisten.
+
+#### Menggunakan Path Module Untuk Multer
+
+Biasanya, modul path akan sangat berguna ketika kita perlu menggabungkan atau memanipulasi path file atau direktori secara dinamis. Sebagai contoh, jika kita ingin memastikan path file bersifat cross-platform, kita mungkin akan menggunakan path.join() atau path.resolve().
+
+Misalnya, alih-alih menentukan direktori secara langsung seperti ini:
+
+```js
+destination: function (req, file, cb) {
+  cb(null, '/temp/my-uploads/');
+}
+```
+
+Kita bisa menggunakan path untuk membangun path file dengan lebih aman:
+
+```js
+import multer from 'multer';
+import path from 'path';
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'temp', 'my-uploads'));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + '-' + uniqueSuffix);
+  },
+});
+
+export const upload = multer({ storage: storage });
+```
+
+Dalam contoh tersebut, `path.join(**dirname, 'temp', 'my-uploads')` menggabungkan `**dirname` (direktori saat ini) dengan `temp` dan `my-uploads` untuk membentuk path direktori yang aman dan konsisten.
+
+#### Contoh Penggunaan Path Module
+
+Berikut adalah beberapa metode yang sering digunakan dari modul path:
+
+- `path.join()`: Menggabungkan segmen path menjadi satu path.
+
+  ```js
+  const fullPath = path.join('/foo', 'bar', 'baz/asdf', 'quux', '..');
+  console.log(fullPath); // '/foo/bar/baz/asdf'
+  ```
+
+- `path.resolve()`: Menyelesaikan path absolut.
+
+  ```js
+  const fullPath = path.resolve('foo/bar', '/tmp/file/', '..', 'a/../subfile');
+  console.log(fullPath); // '/tmp/subfile'
+  ```
+
+- `path.basename()`: Mengembalikan nama file dari path.
+
+  ```js
+  const fileName = path.basename('/foo/bar/baz/asdf/quux.html');
+  console.log(fileName); // 'quux.html'
+  ```
+
+- `path.extname()`: Mengembalikan ekstensi dari path file.
+
+  ```js
+  const ext = path.extname('/foo/bar/baz/asdf/quux.html');
+  console.log(ext); // '.html'
+  ```
+
+Dengan menggunakan path, kita dapat memastikan bahwa manipulasi path file di aplikasi kita konsisten dan aman, terlepas dari lingkungan sistem operasi di mana aplikasi tersebut berjalan.
+
+### MIME
+
+MIME (Multipurpose Internet Mail Extensions) adalah standar yang digunakan untuk mengidentifikasi jenis file yang sedang ditransfer melalui internet. MIME type memberikan informasi tentang format konten file, sehingga aplikasi atau perangkat lunak yang menerima file tersebut dapat menanganinya dengan benar.
+
+MIME type terdiri dari dua bagian utama yang dipisahkan oleh garis miring (/):
+
+- Tipe Utama (Type)<br/>
+  Menunjukkan kategori umum file, seperti image untuk gambar, text untuk teks, audio untuk suara, video untuk video, dan application untuk aplikasi.
+- Subtipe (Subtype) <br/>
+  Menunjukkan format spesifik file dalam kategori tersebut, seperti jpeg, png, html, json, dll.
+
+**Contoh MIME type**
+
+- image/jpeg untuk file gambar dengan format JPEG.
+- image/png untuk file gambar dengan format PNG.
+- text/html untuk file HTML.
+- application/json untuk file JSON.
+
 ## Setup Project
 
 - Buat initial project dengan command `npm init`, kemudian isi jawab setiap pertanyaan yang diajukan
@@ -1298,3 +1387,299 @@ Kita akan membahas cara menambahkan authorization berdasarkan role dalam aplikas
 
   export default router;
   ```
+
+## Upload file (image) menggunakan Multer
+
+Berikut adalah penjelasan lengkap tentang cara mengunggah file menggunakan [Multer](https://www.npmjs.com/package/multer) di ExpressJS
+
+1. Buat utils untuk Upload File <br/>
+   Buat utils untuk mengatur penyimpanan file yang diupload menggunakan Multer.
+
+   ```js
+   import multer from 'multer';
+   import path from 'path';
+
+   const FILE_TYPES = {
+     'image/png': 'png',
+     'image/jpg': 'jpg',
+     'image/jpeg': 'jpeg',
+   };
+
+   const storage = multer.diskStorage({
+     destination: function (req, file, cb) {
+       const isValidFormat = FILE_TYPES[file.mimetype];
+       let uploadError = new Error('Invalid image type');
+       console.log(path.parse(file.originalname).name.replace(/\s+/g, '_'));
+
+       if (isValidFormat) {
+         uploadError = null;
+       }
+
+       cb(uploadError, 'public/uploads');
+     },
+
+     filename: function (req, file, cb) {
+       const originalFileName = path
+         .parse(file.originalname)
+         .name.replace(/\s+/g, '-');
+       const uniqueFileName = `${originalFileName}-${Date.now()}${path.extname(
+         file.originalname
+       )}`;
+       cb(null, uniqueFileName);
+     },
+   });
+
+   export const upload = multer({ storage: storage });
+   ```
+
+   Berikut fungsi utils tersebut:
+
+   - Menentukan Tipe File yang Diizinkan
+
+     ```js
+     const FILE_TYPES = {
+       'image/png': 'png',
+       'image/jpg': 'jpg',
+       'image/jpeg': 'jpeg',
+     };
+     ```
+
+     Objek FILE_TYPES menentukan tipe file yang diizinkan untuk diunggah. Key adalah tipe [MIME](#mime) dari file, dan value adalah ekstensi file yang sesuai.
+
+   - Konfigurasi penyimpanan<br/>
+     Konfigurasi penyimpanan `multer.diskStorage` menentukan bagaimana dan di mana file yang diunggah akan disimpan:
+
+     - Destination Function:
+
+       - Memeriksa apakah tipe file valid dengan memeriksa tipe MIME terhadap FILE_TYPES.
+       - Jika tipe file valid, uploadError diatur ke null, jika tidak, diatur ke pesan kesalahan.
+       - Callback cb dipanggil dengan parameter uploadError dan direktori tujuan 'public/uploads'.
+
+     - filename Function:
+
+       - Menghasilkan nama file unik dengan menggabungkan nama file original, timestamp saat ini, dan ekstensi file asli.
+       - `path.parse()` adalah metode yang memecah path file menjadi beberapa bagian (root, dir, base, ext, name). Dalam konteks ini, kita hanya menggunakan file.originalname sebagai input untuk `path.parse()`
+       - Hasil dari path.parse(file.originalname) adalah sebuah objek yang berisi:
+         ```js
+         {
+           root: '',        // root dari path (biasanya kosong jika hanya nama file yang diberikan)
+           dir: '',         // direktori dari path (biasanya kosong jika hanya nama file yang diberikan)
+           base: 'example file.jpg', // nama lengkap file termasuk ekstensi
+           ext: '.jpg',     // ekstensi file
+           name: 'example file'  // nama file tanpa ekstensi
+         }
+         ```
+       - Callback cb dipanggil dengan null (tidak ada kesalahan) dan nama file yang unik.
+
+2. Controller Produk <br/>
+   Tambahkan fungsi UploadImage untuk menghandle unggahan file dan modifikasi.
+
+   ```js
+   // controllers/productController.js
+
+   import mongoose from 'mongoose';
+   import asyncHandler from '../middlewares/asyncHandler.js';
+   import Product from '../models/products.js';
+
+   export const CreateProduct = asyncHandler(async (req, res) => {
+     const newProduct = await Product.create(req.body);
+
+     return res.status(201).json({
+       code: '201',
+       status: 'Scuccess',
+       message: 'Product created successfully',
+       data: newProduct,
+     });
+   });
+
+   export const GetAllProduct = asyncHandler(async (req, res) => {
+     const products = await Product.find();
+
+     return res.status(200).json({
+       code: '200',
+       status: 'Success',
+       message: 'Request was successful',
+       data: products,
+     });
+   });
+
+   export const GetProductById = asyncHandler(async (req, res) => {
+     if (!mongoose.isValidObjectId(req?.params?.id)) {
+       res.status(404);
+       throw new Error('Invalid ID format');
+     }
+
+     const product = await Product.findById(req?.params?.id);
+
+     if (!product) {
+       res.status(404);
+       throw new Error('ID not found');
+     }
+
+     return res.status(200).json({
+       code: '200',
+       status: 'Success',
+       message: 'Request was successful',
+       data: product,
+     });
+   });
+
+   export const UpdateProduct = asyncHandler(async (req, res) => {
+     //   Check Id format
+     if (!mongoose.isValidObjectId(req?.params?.id)) {
+       res.status(404);
+       throw new Error('Invalid ID format');
+     }
+
+     // check if product is exist
+     const updateProduct = await Product.findByIdAndUpdate(
+       req?.params?.id,
+       req?.body,
+       { runValidators: true, new: true }
+     );
+
+     // check if product is not exist
+     if (!updateProduct) {
+       res.status(404);
+       throw new Error('ID not found');
+     }
+
+     return res.status(201).json({
+       code: '201',
+       status: 'Success',
+       message: 'Product updated successfully',
+       data: updateProduct,
+     });
+   });
+
+   export const DeleteProduct = asyncHandler(async (req, res) => {
+     //   Check Id format
+     if (!mongoose.isValidObjectId(req?.params?.id)) {
+       res.status(404);
+       throw new Error('Invalid ID format');
+     }
+
+     const deletedProduct = await Product.findByIdAndDelete(req?.params?.id);
+
+     // Check if product is not exist
+     if (!deletedProduct) {
+       res.status(404);
+       throw new Error('ID not found');
+     }
+
+     return res.status(201).json({
+       code: '200',
+       status: 'Success',
+       message: 'Product deleted successfully',
+       data: deletedProduct,
+     });
+   });
+
+   //----------------------------------------------------------------------------------------------
+   export const UploadImage = asyncHandler(async (req, res) => {
+     const image = req?.file;
+
+     if (!image) {
+       res.status(400);
+       throw new Error('Please add an image');
+     }
+
+     const imageFileName = image.filename;
+     const pathImageFile = `/uploads/${imageFileName}`;
+
+     res.status(200).json({
+       code: '200',
+       status: 'Success',
+       message: 'Image uploaded successfully',
+       data: pathImageFile,
+     });
+   });
+   //----------------------------------------------------------------------------------------------
+   ```
+
+3. Rute Upload File <br/>
+   Tambahkan rute untuk mengupload file.
+
+   ```js
+   // routes/productRouter.js
+
+   import express from 'express';
+   import {
+     CreateProduct,
+     DeleteProduct,
+     GetAllProduct,
+     GetProductById,
+     UpdateProduct,
+     UploadImage,
+   } from '../controller/productController.js';
+   import {
+     ownerMiddleware,
+     protectedMiddleware,
+   } from '../middlewares/authMidleware.js';
+   import { upload } from '../utils/uploadFileHandler.js';
+
+   const router = express.Router();
+
+   router.post('/', ownerMiddleware, CreateProduct);
+   router.get('/', protectedMiddleware, GetAllProduct);
+   router.get('/:id', protectedMiddleware, GetProductById);
+   router.put('/:id', protectedMiddleware, ownerMiddleware, UpdateProduct);
+   router.delete('/:id', protectedMiddleware, ownerMiddleware, DeleteProduct);
+   //---------------------------------------------------------------------------------------------
+   router.post(
+     '/file-upload',
+     protectedMiddleware,
+     ownerMiddleware,
+     upload.single('image'),
+     UploadImage
+   );
+   //---------------------------------------------------------------------------------------------
+
+   export default router;
+   ```
+
+4. Tambahkan middleware statis yang mengarah ke folder public. <br/>
+   Ini berguna agar kita bisa melihat gambar yang kita upload ke database melalui browser menggunakan domain dasar, port, dan path yang kita set di database. Jadi, di browser kita bisa memeriksa gambar yang kita unggah di database tersebut dengan URL `baseDomain:port/pathFile`.
+
+   ```js
+   // index.js
+
+   import express from 'express';
+   import dotenv from 'dotenv';
+   import cookieParser from 'cookie-parser';
+
+   dotenv.config();
+   const app = express();
+
+   import connectDB from './config/db.js';
+   import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
+   import authRouter from './routes/authRouter.js';
+   import productRouter from './routes/productRouter.js';
+
+   // Middleware
+   app.use(express.json());
+   app.use(express.urlencoded({ extended: true }));
+   app.use(cookieParser());
+   //-------------------------------------------------------------------------------------------
+   app.use(express.static('./public'));
+   //-------------------------------------------------------------------------------------------
+
+   // Route
+   app.use('/api/v1/auth', authRouter);
+   app.use('/api/v1/products', productRouter);
+
+   // Error handling
+   app.use(notFound);
+   app.use(errorHandler);
+
+   // Connect DB
+   connectDB();
+
+   // Port
+   const PORT = process.env.PORT || 3010;
+
+   // Server
+   app.listen(PORT, () => {
+     console.log(`Server running on port http://localhost:${PORT}`);
+   });
+   ```
