@@ -52,6 +52,7 @@ export const UpdateProduct = asyncHandler(async (req, res) => {
     throw new Error('Invalid ID format');
   }
 
+  // check if product is exist
   const updateProduct = await Product.findByIdAndUpdate(
     req?.params?.id,
     req?.body,
@@ -92,5 +93,24 @@ export const DeleteProduct = asyncHandler(async (req, res) => {
     status: 'Success',
     message: 'Product deleted successfully',
     data: deletedProduct,
+  });
+});
+
+export const UploadImage = asyncHandler(async (req, res) => {
+  const image = req?.file;
+
+  if (!image) {
+    res.status(400);
+    throw new Error('Please add an image');
+  }
+
+  const imageFileName = image.filename;
+  const pathImageFile = `/uploads/${imageFileName}`;
+
+  res.status(200).json({
+    code: '200',
+    status: 'Success',
+    message: 'Image uploaded successfully',
+    data: pathImageFile,
   });
 });
