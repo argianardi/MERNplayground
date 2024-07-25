@@ -1,4 +1,4 @@
-import Product from './models/products.js';
+import Product from './models/productModel.js';
 import connectDB from './config/db.js';
 
 const products = [

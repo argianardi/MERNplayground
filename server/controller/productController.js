@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import asyncHandler from '../middlewares/asyncHandler.js';
-import Product from '../models/products.js';
+import Product from '../models/productModel.js';
 
 export const CreateProduct = asyncHandler(async (req, res) => {
   const newProduct = await Product.create(req.body);
