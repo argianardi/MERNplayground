@@ -9,6 +9,7 @@ import connectDB from './config/db.js';
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 import authRouter from './routes/authRouter.js';
 import productRouter from './routes/productRouter.js';
+import orderRouter from './routes/orderRouter.js';
 
 // Middleware
 app.use(express.json());
@@ -19,6 +20,7 @@ app.use(express.static('./public'));
 // Route
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/products', productRouter);
+app.use('/api/v1/orders', orderRouter);
 
 // Error handling
 app.use(notFound);
