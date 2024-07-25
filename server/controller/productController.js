@@ -17,12 +17,20 @@ export const GetAllProduct = asyncHandler(async (req, res) => {
   //   Req query
   const queryObj = { ...req?.query };
 
-  const excludedFields = ['page', 'limit'];
+  const excludedFields = ['page', 'limit', 'name'];
   excludedFields.forEach((element) => delete queryObj[element]);
 
-  let query = Product.find(queryObj);
+  let query;
 
-  const totalItems = await Product.countDocuments(queryObj);
+  if (req?.query?.name) {
+    query = Product.find({
+      name: { $regex: req?.query?.name, $options: 'i' },
+    });
+  } else {
+    query = Product.find(queryObj);
+  }
+
+  const totalItems = await Product.countDocuments(query);
 
   // Pagination
   const page = req?.query?.page * 1 || 1;
@@ -33,8 +41,7 @@ export const GetAllProduct = asyncHandler(async (req, res) => {
   query = query.skip(skipData).limit(limitData);
 
   if (req?.query?.page) {
-    const numProduct = await Product.countDocuments();
-    if (skipData >= numProduct) {
+    if (skipData >= totalItems) {
       res.status(404);
       throw new Error('This page does not exist');
     }
