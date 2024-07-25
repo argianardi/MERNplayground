@@ -1684,6 +1684,53 @@ Berikut adalah penjelasan lengkap tentang cara mengunggah file menggunakan [Mult
    });
    ```
 
+## Cara Membuat Seed untuk Product
+
+Menyediakan data awal atau seed data ke dalam database sering kali diperlukan untuk tujuan development dan testing. Berikut adalah langkah-langkah untuk membuat seed data:
+
+- Instalasi dan Konfigurasi Database <br>
+  Pastikan kita telah menginstal dan mengonfigurasi MongoDB serta telah membuat model Product.
+- Buat file bernama `seedProduct.js` di folder project kita.
+
+  ```js
+  // seedProduct.js
+
+  import Product from './models/products.js';
+  import connectDB from './config/db.js';
+
+  const products = [
+    {
+      name: 'nike air max',
+      price: 500000,
+      description: 'Sepatu olahraga',
+      category: 'Sepatu',
+    },
+    .....
+  ];
+
+  connectDB();
+
+  async function seedManyProducts() {
+    try {
+      const response = await Product.insertMany(products);
+      console.log(response);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  seedManyProducts();
+  ```
+
+- Data Produk<br/>
+  Assign data products yang merupakan array yang berisi objek-objek produk yang akan diinsert ke dalam database yang digunakan untuk kepentingan development dan testing. Setiap objek produk memiliki atribut seperti name, price, description, dan category.
+- Koneksi ke Database <br/>
+  connectDB() digunakan untuk menghubungkan ke database.
+- Fungsi seedManyProducts <br/>
+  seedManyProducts adalah fungsi asinkron yang menggunakan Product.insertMany untuk menambahkan semua produk dari array products ke dalam database.
+- Memanggil Fungsi seedManyProducts<br/>
+  `seedManyProducts()` dipanggil untuk menjalankan proses seeding data.
+
 ## Menambahkan Filter dan Pagination pada Produk
 
 Dalam pengembangan aplikasi web, memberikan kemampuan bagi user untuk memfilter dan melihat produk berdasarkan halaman tertentu adalah fitur yang sangat penting. Untuk mendukung filter dan pagination, kita perlu melakukan beberapa perubahan pada method `GetAllProduct` [ref](https://www.youtube.com/watch?v=1KFicWo_TUA&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=12)
