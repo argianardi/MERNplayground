@@ -1390,7 +1390,7 @@ Kita akan membahas cara menambahkan authorization berdasarkan role dalam aplikas
 
 ## Upload file (image) menggunakan Multer
 
-Berikut adalah penjelasan lengkap tentang cara mengunggah file menggunakan [Multer](https://www.npmjs.com/package/multer) di ExpressJS
+Berikut adalah penjelasan lengkap tentang cara mengunggah file menggunakan [Multer](https://www.npmjs.com/package/multer) di ExpressJS [ref](https://www.youtube.com/watch?v=KnkSIJIr1Aw&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=13):
 
 1. Buat utils untuk Upload File <br/>
    Buat utils untuk mengatur penyimpanan file yang diupload menggunakan Multer.
@@ -1683,3 +1683,192 @@ Berikut adalah penjelasan lengkap tentang cara mengunggah file menggunakan [Mult
      console.log(`Server running on port http://localhost:${PORT}`);
    });
    ```
+
+## Menambahkan Filter dan Pagination pada Produk
+
+Dalam pengembangan aplikasi web, memberikan kemampuan bagi user untuk memfilter dan melihat produk berdasarkan halaman tertentu adalah fitur yang sangat penting. Untuk mendukung filter dan pagination, kita perlu melakukan beberapa perubahan pada method `GetAllProduct` [ref](https://www.youtube.com/watch?v=1KFicWo_TUA&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=12)
+
+```js
+import mongoose from 'mongoose';
+import asyncHandler from '../middlewares/asyncHandler.js';
+import Product from '../models/products.js';
+
+export const CreateProduct = asyncHandler(async (req, res) => {
+  const newProduct = await Product.create(req.body);
+
+  return res.status(201).json({
+    code: '201',
+    status: 'Scuccess',
+    message: 'Product created successfully',
+    data: newProduct,
+  });
+});
+
+export const GetAllProduct = asyncHandler(async (req, res) => {
+  //---------------------------------------------------------------------------------------------------
+  //   Req query
+  const queryObj = { ...req?.query };
+
+  const excludedFields = ['page', 'limit'];
+  excludedFields.forEach((element) => delete queryObj[element]);
+
+  let query = Product.find(queryObj);
+
+  const totalItems = await Product.countDocuments(queryObj);
+
+  // Pagination
+  const page = req?.query?.page * 1 || 1;
+  const limitData = req?.query?.limit * 1 || 30;
+  const skipData = (page - 1) * limitData;
+  const totalPages = Math.ceil(totalItems / limitData);
+
+  query = query.skip(skipData).limit(limitData);
+
+  if (req?.query?.page) {
+    const numProduct = await Product.countDocuments();
+    if (skipData >= numProduct) {
+      res.status(404);
+      throw new Error('This page does not exist');
+    }
+  }
+
+  const products = await query;
+
+  return res.status(200).json({
+    code: '200',
+    status: 'Success',
+    message: 'Request was successful',
+    data: products,
+    page: {
+      totalItems: totalItems,
+      pageSize: limitData,
+      totalPages: totalPages,
+      currentPage: page,
+    },
+  });
+});
+//---------------------------------------------------------------------------------------------------
+
+export const GetProductById = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req?.params?.id)) {
+    res.status(404);
+    throw new Error('Invalid ID format');
+  }
+
+  const product = await Product.findById(req?.params?.id);
+
+  if (!product) {
+    res.status(404);
+    throw new Error('ID not found');
+  }
+
+  return res.status(200).json({
+    code: '200',
+    status: 'Success',
+    message: 'Request was successful',
+    data: product,
+  });
+});
+
+export const UpdateProduct = asyncHandler(async (req, res) => {
+  //   Check Id format
+  if (!mongoose.isValidObjectId(req?.params?.id)) {
+    res.status(404);
+    throw new Error('Invalid ID format');
+  }
+
+  // check if product is exist
+  const updateProduct = await Product.findByIdAndUpdate(
+    req?.params?.id,
+    req?.body,
+    { runValidators: true, new: true }
+  );
+
+  // check if product is not exist
+  if (!updateProduct) {
+    res.status(404);
+    throw new Error('ID not found');
+  }
+
+  return res.status(201).json({
+    code: '201',
+    status: 'Success',
+    message: 'Product updated successfully',
+    data: updateProduct,
+  });
+});
+
+export const DeleteProduct = asyncHandler(async (req, res) => {
+  //   Check Id format
+  if (!mongoose.isValidObjectId(req?.params?.id)) {
+    res.status(404);
+    throw new Error('Invalid ID format');
+  }
+
+  const deletedProduct = await Product.findByIdAndDelete(req?.params?.id);
+
+  // Check if product is not exist
+  if (!deletedProduct) {
+    res.status(404);
+    throw new Error('ID not found');
+  }
+
+  return res.status(201).json({
+    code: '200',
+    status: 'Success',
+    message: 'Product deleted successfully',
+    data: deletedProduct,
+  });
+});
+
+export const UploadImage = asyncHandler(async (req, res) => {
+  const image = req?.file;
+
+  if (!image) {
+    res.status(400);
+    throw new Error('Please add an image');
+  }
+
+  const imageFileName = image.filename;
+  const pathImageFile = `/uploads/${imageFileName}`;
+
+  res.status(200).json({
+    code: '200',
+    status: 'Success',
+    message: 'Image uploaded successfully',
+    data: pathImageFile,
+  });
+});
+```
+
+Berkut langkah - langkah code diatas:
+
+- Menghapus Parameter Pagination dari Query Objek
+  - Kita menghapus page dan limit dari queryObj untuk memastikan bahwa mereka tidak mempengaruhi filter pencarian produk di database.
+    ```js
+    const excludedFields = ['page', 'limit'];
+    excludedFields.forEach((element) => delete queryObj[element]);
+    ```
+- Membuat Query Database Berdasarkan Query Objek yang Dimodifikasi
+  ```js
+  let query = Product.find(queryObj);
+  ```
+  Query ini hanya akan mempertimbangkan parameter yang relevan untuk pencarian produk, seperti name, category, atau price.
+- Menambahkan Pagination ke Query:
+  ```js
+  const page = req?.query?.page _ 1 || 1;
+  const limitData = req?.query?.limit _ 1 || 30;
+  const skipData = (page - 1) \* limitData;
+  query = query.skip(skipData).limit(limitData);
+  ```
+- Memeriksa Validitas Halaman:
+
+  ```js
+  if (req?.query?.page) {
+    const numProduct = await Product.countDocuments();
+    if (skipData >= numProduct) {
+      res.status(404);
+      throw new Error('This page does not exist');
+    }
+  }
+  ```
