@@ -2095,3 +2095,191 @@ export const UploadImage = asyncHandler(async (req, res) => {
   Setelah menentukan query yang sesuai, controller menghitung jumlah total item berdasarkan query yang digunakan. Pagination diterapkan seperti sebelumnya, memastikan bahwa hasil pencarian dibagi dalam halaman-halaman yang sesuai.
 - Penanganan Halaman Tidak Ditemukan<br/>
   Cek untuk memastikan bahwa jika skipData melebihi total item yang tersedia, maka akan mengembalikan status 404 dan pesan kesalahan.
+
+## Membuat Fitur Post Order
+
+Fitur "Post Order" memungkinkan user untuk membuat pesanan dengan detail produk yang ada di dalam cart mereka. Berikut adalah langkah-langkah yang diperlukan untuk mengimplementasikan fitur ini [ref](https://www.youtube.com/watch?v=zdlWcZPsv0M&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=10).
+
+1. Membuat Model dan Schema Order <br/>
+   Schema Order akan mendefinisikan struktur dokumen pesanan yang akan disimpan dalam MongoDB.
+
+   ```js
+   // models/orderModel.js
+
+   import mongoose, { Schema } from 'mongoose';
+
+   const singleProduct = Schema({
+     name: { type: String, required: true },
+     quantity: { type: Number, required: true },
+     price: { type: Number, required: true },
+     product: {
+       type: mongoose.Schema.ObjectId,
+       ref: 'Product',
+       required: true,
+     },
+   });
+
+   const orderSchema = new Schema({
+     totalPrice: {
+       type: Number,
+       required: [true, 'Total price is required'],
+     },
+     itemsDetail: [singleProduct],
+     user: {
+       type: Schema.ObjectId,
+       ref: 'User',
+       required: true,
+     },
+     status: {
+       type: String,
+       enum: ['pending', 'failed', 'success', 'canceled'],
+       default: 'pending',
+     },
+     firstName: {
+       type: String,
+       required: [true, 'First name is required'],
+     },
+     lastName: {
+       type: String,
+       required: [true, 'Last name is required'],
+     },
+     phone: {
+       type: String,
+       required: [true, 'Phone number is required'],
+     },
+     email: {
+       type: String,
+       required: [true, 'Email is required'],
+     },
+   });
+
+   const Order = mongoose.model('Order', orderSchema);
+   export default Order;
+   ```
+
+2. Membuat Controller untuk Create Order <br/>
+   Selanjutnya, kita buat controller untuk menangani request create order.
+
+   ```js
+   // controllers/orderController.js
+
+   import asyncHandler from '../middlewares/asyncHandler.js';
+   import Order from '../models/orderModel.js';
+   import Product from '../models/productModel.js';
+
+   export const CreateOrder = asyncHandler(async (req, res) => {
+     const { email, firstName, lastName, phone, cartItems } = req?.body;
+
+     if (!cartItems || cartItems.length < 1) {
+       res.status(400);
+       throw new Error('Cart is empty');
+     }
+
+     let orderItems = [];
+     let totalPrice = 0;
+
+     for (const cart of cartItems) {
+       const productData = await Product.findOne({ _id: cart?.product });
+
+       if (!productData) {
+         res.status(404);
+         throw new Error('Product not found');
+       }
+
+       const { name, price, _id } = productData;
+       const singleProduct = {
+         quantity: cart?.quantity,
+         name,
+         price,
+         product: _id,
+       };
+
+       orderItems = [...orderItems, singleProduct];
+       totalPrice += cart?.quantity * price;
+     }
+
+     const order = await Order.create({
+       itemsDetail: orderItems,
+       totalPrice,
+       firstName,
+       lastName,
+       phone,
+       email,
+       user: req?.user?.id,
+     });
+
+     return res.status(201).json({
+       code: '201',
+       status: 'Success',
+       message: 'Order created successfully',
+       data: order,
+     });
+   });
+   ```
+
+3. Membuat Router untuk Create Order<br/>
+   Router ini akan menghubungkan endpoint ke controller create order tadi yang telah dibuat.
+
+   ```js
+   // router/orderRouter.js
+
+   import express from 'express';
+   import { protectedMiddleware } from '../middlewares/authMidleware.js';
+   import { CreateOrder } from '../controller/orderController.js';
+
+   const router = express.Router();
+
+   router.post('/', protectedMiddleware, CreateOrder);
+
+   export default router;
+   ```
+
+4. Mengintegrasikan Order Router ke dalam File Entry Point<br/>
+   Terakhir, kita tambahkan order router ini ke dalam file entry point aplikasi kita.
+
+   ```js
+   // index.js
+
+   import express from 'express';
+   import dotenv from 'dotenv';
+   import cookieParser from 'cookie-parser';
+
+   dotenv.config();
+   const app = express();
+
+   import connectDB from './config/db.js';
+   import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
+   import authRouter from './routes/authRouter.js';
+   import productRouter from './routes/productRouter.js';
+   //--------------------------------------------------------------------------
+   import orderRouter from './routes/orderRouter.js';
+   //--------------------------------------------------------------------------
+
+   // Middleware
+   app.use(express.json());
+   app.use(express.urlencoded({ extended: true }));
+   app.use(cookieParser());
+   app.use(express.static('./public'));
+
+   // Route
+   app.use('/api/v1/auth', authRouter);
+   app.use('/api/v1/products', productRouter);
+   //--------------------------------------------------------------------------
+   app.use('/api/v1/orders', orderRouter);
+   //--------------------------------------------------------------------------
+
+   // Error handling
+   app.use(notFound);
+   app.use(errorHandler);
+
+   // Connect DB
+   connectDB();
+
+   // Port
+   const PORT = process.env.PORT || 3010;
+
+   // Server
+   app.listen(PORT, () => {
+     console.log(`Server running on port http://localhost:${PORT}`);
+   });
+   ```
