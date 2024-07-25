@@ -1919,3 +1919,179 @@ Berkut langkah - langkah code diatas:
     }
   }
   ```
+
+## Searching Berdasarkan Nama Product
+
+Untuk membuat fitur search kita harus melakukan beberapa perubahan pada controller `GetAllProduct` [ref](https://www.youtube.com/watch?v=Op-Qb8cOO48&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=13):
+
+```js
+// controllers/productController.js
+
+import mongoose from 'mongoose';
+import asyncHandler from '../middlewares/asyncHandler.js';
+import Product from '../models/products.js';
+
+export const CreateProduct = asyncHandler(async (req, res) => {
+  const newProduct = await Product.create(req.body);
+
+  return res.status(201).json({
+    code: '201',
+    status: 'Scuccess',
+    message: 'Product created successfully',
+    data: newProduct,
+  });
+});
+
+export const GetAllProduct = asyncHandler(async (req, res) => {
+  //   Req query
+  const queryObj = { ...req?.query };
+
+  //-------------------------------------------------------------------------------------------------------------------------
+  const excludedFields = ['page', 'limit', 'name'];
+  excludedFields.forEach((element) => delete queryObj[element]);
+
+  let query;
+
+  if (req?.query?.name) {
+    query = Product.find({
+      name: { $regex: req?.query?.name, $options: 'i' },
+    });
+  } else {
+    query = Product.find(queryObj);
+  }
+
+  const totalItems = await Product.countDocuments(query);
+  //-------------------------------------------------------------------------------------------------------------------------
+
+  // Pagination
+  const page = req?.query?.page * 1 || 1;
+  const limitData = req?.query?.limit * 1 || 30;
+  const skipData = (page - 1) * limitData;
+  const totalPages = Math.ceil(totalItems / limitData);
+
+  query = query.skip(skipData).limit(limitData);
+
+  if (req?.query?.page) {
+    if (skipData >= totalItems) {
+      res.status(404);
+      throw new Error('This page does not exist');
+    }
+  }
+
+  const products = await query;
+
+  return res.status(200).json({
+    code: '200',
+    status: 'Success',
+    message: 'Request was successful',
+    data: products,
+    page: {
+      totalItems: totalItems,
+      pageSize: limitData,
+      totalPages: totalPages,
+      currentPage: page,
+    },
+  });
+});
+
+export const GetProductById = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req?.params?.id)) {
+    res.status(404);
+    throw new Error('Invalid ID format');
+  }
+
+  const product = await Product.findById(req?.params?.id);
+
+  if (!product) {
+    res.status(404);
+    throw new Error('ID not found');
+  }
+
+  return res.status(200).json({
+    code: '200',
+    status: 'Success',
+    message: 'Request was successful',
+    data: product,
+  });
+});
+
+export const UpdateProduct = asyncHandler(async (req, res) => {
+  //   Check Id format
+  if (!mongoose.isValidObjectId(req?.params?.id)) {
+    res.status(404);
+    throw new Error('Invalid ID format');
+  }
+
+  // check if product is exist
+  const updateProduct = await Product.findByIdAndUpdate(
+    req?.params?.id,
+    req?.body,
+    { runValidators: true, new: true }
+  );
+
+  // check if product is not exist
+  if (!updateProduct) {
+    res.status(404);
+    throw new Error('ID not found');
+  }
+
+  return res.status(201).json({
+    code: '201',
+    status: 'Success',
+    message: 'Product updated successfully',
+    data: updateProduct,
+  });
+});
+
+export const DeleteProduct = asyncHandler(async (req, res) => {
+  //   Check Id format
+  if (!mongoose.isValidObjectId(req?.params?.id)) {
+    res.status(404);
+    throw new Error('Invalid ID format');
+  }
+
+  const deletedProduct = await Product.findByIdAndDelete(req?.params?.id);
+
+  // Check if product is not exist
+  if (!deletedProduct) {
+    res.status(404);
+    throw new Error('ID not found');
+  }
+
+  return res.status(201).json({
+    code: '200',
+    status: 'Success',
+    message: 'Product deleted successfully',
+    data: deletedProduct,
+  });
+});
+
+export const UploadImage = asyncHandler(async (req, res) => {
+  const image = req?.file;
+
+  if (!image) {
+    res.status(400);
+    throw new Error('Please add an image');
+  }
+
+  const imageFileName = image.filename;
+  const pathImageFile = `/uploads/${imageFileName}`;
+
+  res.status(200).json({
+    code: '200',
+    status: 'Success',
+    message: 'Image uploaded successfully',
+    data: pathImageFile,
+  });
+});
+```
+
+- Penambahan Fitur Pencarian Nama Produk<br/>
+  - Memeriksa apakah query parameter name ada.
+  - Jika ada, maka query produk diubah untuk mencari nama produk yang cocok menggunakan ekspresi reguler (`$regex`) dengan opsi case-insensitive ($options: 'i'). Ini memungkinkan pencarian yang fleksibel berdasarkan nama produk.
+- Penghapusan Field yang Dikecualikan <br/>
+  Field name ditambahkan ke dalam daftar excludedFields yang dihapus dari queryObj. Ini untuk memastikan bahwa parameter pencarian nama tidak diproses bersama dengan parameter lainnya.
+- Perhitungan Total Items dan Pagination <br/>
+  Setelah menentukan query yang sesuai, controller menghitung jumlah total item berdasarkan query yang digunakan. Pagination diterapkan seperti sebelumnya, memastikan bahwa hasil pencarian dibagi dalam halaman-halaman yang sesuai.
+- Penanganan Halaman Tidak Ditemukan<br/>
+  Cek untuk memastikan bahwa jika skipData melebihi total item yang tersedia, maka akan mengembalikan status 404 dan pesan kesalahan.
