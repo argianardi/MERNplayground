@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import asyncHandler from '../middlewares/asyncHandler.js';
-import User from '../models/users.js';
+import User from '../models/userModel.js';
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {

@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/users.js';
+import User from '../models/userModel.js';
 import asyncHandler from './asyncHandler.js';
 
 export const protectedMiddleware = asyncHandler(async (req, res, next) => {
