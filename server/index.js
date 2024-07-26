@@ -1,6 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import ExpressMongoSanitize from 'express-mongo-sanitize';
 
 dotenv.config();
 const app = express();
@@ -13,6 +15,8 @@ import orderRouter from './routes/orderRouter.js';
 
 // Middleware
 app.use(express.json());
+app.use(helmet());
+app.use(ExpressMongoSanitize());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static('./public'));
