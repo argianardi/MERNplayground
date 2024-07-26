@@ -2410,3 +2410,85 @@ Berikut adalah langkah-langkah untuk membuat endpoint yang memungkinkan user unt
 
    export default router;
    ```
+
+## Gunakan Middleware Express Mongo Sanitize Dan Helmet
+
+### Express Mongo Sanitize
+
+[express-mongo-sanitize](https://www.npmjs.com/package/express-mongo-sanitize) adalah sebuah middleware untuk Express yang membantu melindungi aplikasi dari serangan NoSQL injection. Package ini bekerja dengan cara membersihkan data yang masuk dari request body, query string, dan parameters yang dapat digunakan untuk melakukan injeksi ke database MongoDB.
+
+Kegunaan middleware express mongo sanitize ini adalah:
+
+- Keamanan<br/>
+  Melindungi aplikasi dari serangan NoSQL injection yang dapat mengekspos atau merusak data.
+- Integrasi Mudah<br/>
+  Mudah diintegrasikan dengan aplikasi Express.
+- Pembersihan Data<br/>
+  Membersihkan data yang berpotensi berbahaya sebelum mencapai database.
+
+### Helmet
+
+[helmet](https://www.npmjs.com/package/helmet) adalah sebuah package yang membantu meningkatkan keamanan aplikasi Express dengan mengatur berbagai header HTTP yang relevan. Header-header ini dapat membantu melindungi aplikasi dari beberapa kerentanan web umum.
+
+Berikut manfaat middleware helmet:
+
+- Keamanan Tambahan<br/>
+  Menambahkan lapisan keamanan tambahan dengan mengatur header HTTP yang aman.
+- Best Practices<br/>
+  Mengikuti praktik terbaik dalam keamanan aplikasi web.
+- Konfigurasi Mudah<br/>
+  Mudah untuk dikonfigurasi dan diterapkan pada aplikasi Express.
+
+### Penggunaan Express Mongo Sanitize dan Helmet
+Setelah menginstall kedua package tersebut, import dan inisialisasi di file entry point kita.
+
+```js
+// index.js
+
+import express from 'express';
+import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+//------------------------------------------------------------------------------------
+import helmet from 'helmet';
+import ExpressMongoSanitize from 'express-mongo-sanitize';
+//------------------------------------------------------------------------------------
+
+dotenv.config();
+const app = express();
+
+import connectDB from './config/db.js';
+import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
+import authRouter from './routes/authRouter.js';
+import productRouter from './routes/productRouter.js';
+import orderRouter from './routes/orderRouter.js';
+
+// Middleware
+app.use(express.json());
+//------------------------------------------------------------------------------------
+app.use(helmet());
+app.use(ExpressMongoSanitize());
+//------------------------------------------------------------------------------------
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(express.static('./public'));
+
+// Route
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/products', productRouter);
+app.use('/api/v1/orders', orderRouter);
+
+// Error handling
+app.use(notFound);
+app.use(errorHandler);
+
+// Connect DB
+connectDB();
+
+// Port
+const PORT = process.env.PORT || 3010;
+
+// Server
+app.listen(PORT, () => {
+  console.log(`Server running on port http://localhost:${PORT}`);
+});
+```
