@@ -51,3 +51,33 @@ export const CreateOrder = asyncHandler(async (req, res) => {
     data: order,
   });
 });
+
+export const GetAllOrders = asyncHandler(async (req, res) => {
+  const orders = await Order.find();
+
+  return res.status(200).json({
+    code: '200',
+    message: 'Request was successful',
+    data: orders,
+  });
+});
+
+export const GetOrderById = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req?.params?.id);
+
+  return res?.status(200).json({
+    code: '200',
+    message: 'Request was successful id',
+    data: order,
+  });
+});
+
+export const CurrentUserOrder = asyncHandler(async (req, res) => {
+  const order = await Order.find({ user: req?.user?.id });
+
+  return res.status(200).json({
+    code: '200',
+    message: 'Request was successful',
+    data: order,
+  });
+});
