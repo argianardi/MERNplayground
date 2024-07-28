@@ -2413,6 +2413,8 @@ Berikut adalah langkah-langkah untuk membuat endpoint yang memungkinkan user unt
 
 ## Gunakan Middleware Express Mongo Sanitize Dan Helmet
 
+Berikut kita akan bahas keduanya [ref](https://www.youtube.com/watch?v=F7JcskNKHQs&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=8).
+
 ### Express Mongo Sanitize
 
 [express-mongo-sanitize](https://www.npmjs.com/package/express-mongo-sanitize) adalah sebuah middleware untuk Express yang membantu melindungi aplikasi dari serangan NoSQL injection. Package ini bekerja dengan cara membersihkan data yang masuk dari request body, query string, dan parameters yang dapat digunakan untuk melakukan injeksi ke database MongoDB.
@@ -2440,6 +2442,7 @@ Berikut manfaat middleware helmet:
   Mudah untuk dikonfigurasi dan diterapkan pada aplikasi Express.
 
 ### Penggunaan Express Mongo Sanitize dan Helmet
+
 Setelah menginstall kedua package tersebut, import dan inisialisasi di file entry point kita.
 
 ```js
