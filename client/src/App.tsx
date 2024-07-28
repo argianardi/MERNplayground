@@ -1,14 +1,52 @@
-// import './App.css';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import PublicLayout from './layouts/PublicLayout';
+import HomeView from './pages/HomeView';
+import ProductView from './pages/ProductView';
+import OrderView from './pages/OrderView';
+import CartView from './pages/CartView';
+import AboutView from './pages/AboutView';
+import LoginView from './pages/auth/LoginView';
+import Register from './pages/auth/Register';
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <PublicLayout />,
+    children: [
+      {
+        index: true,
+        element: <HomeView />,
+      },
+      {
+        path: 'products',
+        element: <ProductView />,
+      },
+      {
+        path: 'orders',
+        element: <OrderView />,
+      },
+      {
+        path: 'cart',
+        element: <CartView />,
+      },
+      {
+        path: 'about',
+        element: <AboutView />,
+      },
+    ],
+  },
+  {
+    path: '/login',
+    element: <LoginView />,
+  },
+  {
+    path: 'register',
+    element: <Register />,
+  },
+]);
 
 function App() {
-  return (
-    <>
-      <h1 className="text-3xl text-red-500 font-bold underline">
-        Hello world!
-      </h1>
-      <button className="btn btn-neutral">Neutral</button>
-    </>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;
