@@ -123,6 +123,28 @@ MIME type terdiri dari dua bagian utama yang dipisahkan oleh garis miring (/):
 - text/html untuk file HTML.
 - application/json untuk file JSON.
 
+### Buffer
+
+Buffer adalah area penyimpanan sementara di memori yang digunakan untuk menyimpan data mentah dalam bentuk byte. Dalam Node.js, buffer sering digunakan untuk menangani data biner yang berasal dari file, jaringan, atau sumber lainnya. Berikut fitur utamanya:
+
+- Menyimpan Data Biner: Buffer dapat menyimpan data biner dalam bentuk byte, yang berguna untuk menangani data dari file atau jaringan.
+- Operasi Efisien: Buffer memungkinkan operasi efisien pada data biner tanpa perlu mengonversinya ke format lain.
+- Interaksi dengan Stream: Buffer sering digunakan bersama stream untuk menyimpan sementara data yang sedang dibaca atau ditulis.
+
+### Stream
+
+Stream adalah abstraksi untuk bekerja dengan data yang dapat dibaca atau ditulis secara berurutan (chunk-by-chunk). Stream memungkinkan Anda untuk memproses data yang sangat besar secara efisien tanpa harus memuat seluruh data ke dalam memori sekaligus. Berikut jenis-jenis stream:
+
+- Readable Stream: Stream yang digunakan untuk membaca data. Contohnya, membaca file atau data dari jaringan.
+- Writable Stream: Stream yang digunakan untuk menulis data. Contohnya, menulis data ke file atau mengirim data ke jaringan.
+- Duplex Stream: Stream yang dapat dibaca dan ditulis. Contohnya, soket jaringan.
+- Transform Stream: Stream yang dapat mengubah data saat sedang dibaca atau ditulis. Contohnya, zlib untuk kompresi.
+
+Berikut fitur utama stream:
+- Pemrosesan Data Secara Bertahap: Stream memungkinkan pemrosesan data dalam potongan-potongan kecil (chunk) daripada memproses seluruh data sekaligus.
+- Penggunaan Memori yang Efisien: Dengan memproses data dalam chunk, stream mengurangi penggunaan memori dan memungkinkan pemrosesan data yang sangat besar.
+- Interaksi dengan Buffer: Stream sering digunakan bersama buffer untuk membaca atau menulis data dalam bentuk byte.
+
 ## Setup Project
 
 - Buat initial project dengan command `npm init`, kemudian isi jawab setiap pertanyaan yang diajukan
@@ -2495,3 +2517,294 @@ app.listen(PORT, () => {
   console.log(`Server running on port http://localhost:${PORT}`);
 });
 ```
+
+## Upload File dengan Cloudinary dan Streamifier di ExpressJS
+
+Kita akan melakukan uplod file menggunakan [cloudinary](https://cloudinary.com/documentation/react_integration) dan [streamifier](https://www.npmjs.com/package/streamifier).
+
+### Cloudinary
+
+Cloudinary adalah layanan penyimpanan berbasis cloud yang dirancang khusus untuk menangani dan mengelola media, seperti gambar dan video. Dengan Cloudinary, Anda dapat mengunggah, menyimpan, mengelola, dan mengirimkan media secara efisien. Berikut fitur Utamanya:
+
+- Penyimpanan Media: Menyimpan gambar, video, dan file lainnya di cloud.
+- Transformasi Gambar: Mengubah ukuran, memotong, mengubah format, dan menerapkan efek pada gambar secara dinamis.
+- Pengiriman Cepat: Menggunakan CDN untuk mengirimkan media dengan cepat ke pengguna di seluruh dunia.
+- Pengelolaan Media: Mengatur dan mengelola koleksi media melalui dashboard atau API.
+
+### Streamifier
+
+Streamifier adalah package Node.js yang memungkinkan Anda mengubah buffer atau string menjadi stream. Stream adalah konsep di Node.js untuk menangani data yang dapat diambil secara berurutan, memungkinkan pemrosesan data yang efisien dan tidak perlu menunggu seluruh data untuk diterima sebelum mulai memprosesnya. Berikut fitur utamanya:
+
+- Konversi Buffer ke Stream: Mengubah buffer menjadi stream yang dapat dibaca.
+- Konversi String ke Stream: Mengubah string menjadi stream yang dapat dibaca.
+
+### Upload File Menggunakan Cloudinary dan Streamifier
+
+Berikut adalah langkah-langkah untuk mengimplementasikan upload file ke Cloudinary menggunakan ExpressJS:
+
+1. Buat Utilitas Menggunakan multer <br/>
+   Pertama, kita perlu membuat utilitas untuk menangani upload file di server. Utilitas ini akan menggunakan multer, sebuah middleware untuk menangani multipart/form-data, yang terutama digunakan untuk mengunggah file.
+
+   ```js
+   // utils/cloudinaryUploadFileHandler.js
+
+   import multer from 'multer';
+
+   const storage = multer.memoryStorage();
+
+   export const upload = multer({ storage: storage });
+   ```
+
+   Dalam konfigurasi ini, `multer.memoryStorage()` digunakan untuk menyimpan file di memori. Ini berguna ketika kita ingin memproses file langsung tanpa menyimpannya di disk.
+
+2. Buat Controller untuk Logika Upload File ke Cloudinary <br/>
+   Berikutnya, kita perlu membuat controller yang akan menangani logika upload file ke Cloudinary. Controller ini akan menggunakan Cloudinary SDK untuk mengupload file yang diterima dari multer.
+
+   ```js
+   // controllers/productController.js
+
+   import mongoose from 'mongoose';
+   import asyncHandler from '../middlewares/asyncHandler.js';
+   import Product from '../models/productModel.js';
+   import { v2 as cloudinary } from 'cloudinary';
+   import streamifier from 'streamifier';
+   import { generateFileName } from '../utils/generateFileName.js';
+
+   export const CreateProduct = asyncHandler(async (req, res) => {
+     const newProduct = await Product.create(req.body);
+
+     return res.status(201).json({
+       code: '201',
+       status: 'Scuccess',
+       message: 'Product created successfully',
+       data: newProduct,
+     });
+   });
+
+   export const GetAllProduct = asyncHandler(async (req, res) => {
+     //   Req query
+     const queryObj = { ...req?.query };
+
+     const excludedFields = ['page', 'limit', 'name'];
+     excludedFields.forEach((element) => delete queryObj[element]);
+
+     let query;
+
+     if (req?.query?.name) {
+       query = Product.find({
+         name: { $regex: req?.query?.name, $options: 'i' },
+       });
+     } else {
+       query = Product.find(queryObj);
+     }
+
+     const totalItems = await Product.countDocuments(query);
+
+     // Pagination
+     const page = req?.query?.page * 1 || 1;
+     const limitData = req?.query?.limit * 1 || 30;
+     const skipData = (page - 1) * limitData;
+     const totalPages = Math.ceil(totalItems / limitData);
+
+     query = query.skip(skipData).limit(limitData);
+
+     if (req?.query?.page) {
+       if (skipData >= totalItems) {
+         res.status(404);
+         throw new Error('This page does not exist');
+       }
+     }
+
+     const products = await query;
+
+     return res.status(200).json({
+       code: '200',
+       status: 'Success',
+       message: 'Request was successful',
+       data: products,
+       page: {
+         totalItems: totalItems,
+         pageSize: limitData,
+         totalPages: totalPages,
+         currentPage: page,
+       },
+     });
+   });
+
+   export const GetProductById = asyncHandler(async (req, res) => {
+     if (!mongoose.isValidObjectId(req?.params?.id)) {
+       res.status(404);
+       throw new Error('Invalid ID format');
+     }
+
+     const product = await Product.findById(req?.params?.id);
+
+     if (!product) {
+       res.status(404);
+       throw new Error('ID not found');
+     }
+
+     return res.status(200).json({
+       code: '200',
+       status: 'Success',
+       message: 'Request was successful',
+       data: product,
+     });
+   });
+
+   export const UpdateProduct = asyncHandler(async (req, res) => {
+     //   Check Id format
+     if (!mongoose.isValidObjectId(req?.params?.id)) {
+       res.status(404);
+       throw new Error('Invalid ID format');
+     }
+
+     // check if product is exist
+     const updateProduct = await Product.findByIdAndUpdate(
+       req?.params?.id,
+       req?.body,
+       { runValidators: true, new: true }
+     );
+
+     // check if product is not exist
+     if (!updateProduct) {
+       res.status(404);
+       throw new Error('ID not found');
+     }
+
+     return res.status(201).json({
+       code: '201',
+       status: 'Success',
+       message: 'Product updated successfully',
+       data: updateProduct,
+     });
+   });
+
+   export const DeleteProduct = asyncHandler(async (req, res) => {
+     //   Check Id format
+     if (!mongoose.isValidObjectId(req?.params?.id)) {
+       res.status(404);
+       throw new Error('Invalid ID format');
+     }
+
+     const deletedProduct = await Product.findByIdAndDelete(req?.params?.id);
+
+     // Check if product is not exist
+     if (!deletedProduct) {
+       res.status(404);
+       throw new Error('ID not found');
+     }
+
+     return res.status(201).json({
+       code: '200',
+       status: 'Success',
+       message: 'Product deleted successfully',
+       data: deletedProduct,
+     });
+   });
+
+   export const LocalUploadImage = asyncHandler(async (req, res) => {
+     const image = req?.file;
+
+     if (!image) {
+       res.status(400);
+       throw new Error('Please add an image');
+     }
+
+     const imageFileName = image.filename;
+     const pathImageFile = `/uploads/${imageFileName}`;
+
+     res.status(200).json({
+       code: '200',
+       status: 'Success',
+       message: 'Image uploaded successfully',
+       data: pathImageFile,
+     });
+   });
+
+   //-----------------------------------------------------------------------------------------------------------------
+   export const CloudinaryUploadImage = asyncHandler(async (req, res) => {
+     //membuat stream untuk mengupload file ke Cloudinary
+     const stream = cloudinary.uploader.upload_stream(
+       {
+         // Folder di clodinary yang akan dijadikan tempat menyimpan file
+         folder: 'uploads',
+         // Format file yang diperbolehkan untuk diupload
+         allowed_formats: ['jpg', 'svg', 'png'],
+         // Untuk menentukan nama file yang akan tersimpan di cloudinary
+         public_id: generateFileName(req?.file?.originalname),
+       },
+       function (error, result) {
+         if (error) {
+           console.log(error);
+           return res.status(500).json({
+             code: '500',
+             status: 'Error',
+             message: error?.message,
+           });
+         }
+
+         res.status(200).json({
+           code: '200',
+           status: 'Success',
+           message: 'Image uploaded successfully',
+           data: result?.secure_url,
+         });
+       }
+     );
+
+     // Mengubah buffer file menjadi stream dan mengunggahnya/s
+     streamifier.createReadStream(req?.file?.buffer).pipe(stream);
+   });
+   //-----------------------------------------------------------------------------------------------------------------
+   ```
+
+3. Buat Router untuk Upload File ke Cloudinary <br/>
+   Terakhir, kita perlu membuat router yang akan mengatur endpoint untuk upload file ke Cloudinary. Router ini akan menggunakan middleware `multer` yang telah dikonfigurasi sebelumnya, serta controller yang telah kita buat tadi.
+
+   ```js
+   // routes/productRouter.js
+
+   import express from 'express';
+   import {
+     CloudinaryUploadImage,
+     CreateProduct,
+     DeleteProduct,
+     GetAllProduct,
+     GetProductById,
+     LocalUploadImage,
+     UpdateProduct,
+   } from '../controller/productController.js';
+   import {
+     ownerMiddleware,
+     protectedMiddleware,
+   } from '../middlewares/authMidleware.js';
+   import { upload as uploadCloudinary } from '../utils/cloudinaryUploadFileHandler.js';
+   import { upload as uploadLocal } from '../utils/localUploadFileHandler.js';
+   const router = express.Router();
+
+   router.post('/', ownerMiddleware, CreateProduct);
+   router.get('/', GetAllProduct);
+   // router.get('/', protectedMiddleware, GetAllProduct);
+   router.get('/:id', protectedMiddleware, GetProductById);
+   router.put('/:id', protectedMiddleware, ownerMiddleware, UpdateProduct);
+   router.delete('/:id', protectedMiddleware, ownerMiddleware, DeleteProduct);
+   router.post(
+     '/file-upload-local',
+     protectedMiddleware,
+     ownerMiddleware,
+     uploadLocal.single('image'),
+     LocalUploadImage
+   );
+   //------------------------------------------------------------------------------------
+   router.post(
+     '/file-upload-cloudinary',
+     protectedMiddleware,
+     ownerMiddleware,
+     uploadCloudinary.single('image'),
+     CloudinaryUploadImage
+   );
+   //------------------------------------------------------------------------------------
+
+   export default router;
+   ```
