@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import Product from '../models/productModel.js';
+import { v2 as cloudinary } from 'cloudinary';
+import streamifier from 'streamifier';
+import { generateFileName } from '../utils/generateFileName.js';
 
 export const CreateProduct = asyncHandler(async (req, res) => {
   const newProduct = await Product.create(req.body);
@@ -135,7 +138,7 @@ export const DeleteProduct = asyncHandler(async (req, res) => {
   });
 });
 
-export const UploadImage = asyncHandler(async (req, res) => {
+export const LocalUploadImage = asyncHandler(async (req, res) => {
   const image = req?.file;
 
   if (!image) {
@@ -152,4 +155,33 @@ export const UploadImage = asyncHandler(async (req, res) => {
     message: 'Image uploaded successfully',
     data: pathImageFile,
   });
+});
+
+export const CloudinaryUploadImage = asyncHandler(async (req, res) => {
+  const stream = cloudinary.uploader.upload_stream(
+    {
+      folder: 'uploads',
+      allowed_formats: ['jpg', 'svg', 'png'],
+      public_id: generateFileName(req?.file?.originalname),
+    },
+    function (error, result) {
+      if (error) {
+        console.log(error);
+        return res.status(500).json({
+          code: '500',
+          status: 'Error',
+          message: error?.message,
+        });
+      }
+
+      res.status(200).json({
+        code: '200',
+        status: 'Success',
+        message: 'Image uploaded successfully',
+        data: result?.secure_url,
+      });
+    }
+  );
+
+  streamifier.createReadStream(req?.file?.buffer).pipe(stream);
 });
