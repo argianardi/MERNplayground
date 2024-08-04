@@ -7,6 +7,7 @@ import CartView from './pages/CartView';
 import AboutView from './pages/AboutView';
 import LoginView from './pages/auth/LoginView';
 import Register from './pages/auth/Register';
+import DetailProduct from './pages/DetailProduct';
 
 const router = createBrowserRouter([
   {
@@ -20,6 +21,10 @@ const router = createBrowserRouter([
       {
         path: 'products',
         element: <ProductView />,
+      },
+      {
+        path: 'products/:id',
+        element: <DetailProduct />,
       },
       {
         path: 'orders',
