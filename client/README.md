@@ -273,3 +273,344 @@ Dalam mengembangkan aplikasi web dengan React, seringkali kita perlu berkomunika
 
    export default HomeView;
    ```
+
+## Form Filter untuk Produk Menggunakan React Router
+
+Dalam pengembangan aplikasi, misalnya aplikasi e-commerce, form filter adalah fitur penting yang membantu user menemukan produk dengan lebih mudah. Kali ini akan membahas cara membuat form filter produk dengan menggunakan React dan React Router. Kita akan membuat form filter yang mencakup input pencarian dan dropdown kategori.
+
+1. Membuat Komponen Input Form <br/>
+   Komponen pertama yang akan kita buat adalah komponen `FormInput` yang akan digunakan untuk menerima input pencarian dari user.
+
+   ```tsx
+   // src/components/form/FormInput.tsx
+   interface FormInputType {
+     defaultValue?: string;
+     label: string;
+     type: string;
+     name: string;
+   }
+
+   const FormInput = ({ label, name, type, defaultValue }: FormInputType) => {
+     return (
+       <label className="form-control">
+         <label className="label">
+           <span className="capitalize label-text">{label}</span>
+         </label>
+         <input
+           type={type}
+           name={name}
+           defaultValue={defaultValue}
+           className="input input-bordered"
+         />
+       </label>
+     );
+   };
+
+   export default FormInput;
+   ```
+
+   Komponen ini menerima properti label, name, type, dan defaultValue yang digunakan untuk membuat input form bisa dijadikan reusable.
+
+2. Membuat Komponen Select Form<br/>
+   Komponen kedua adalah FormSelect yang akan digunakan untuk memilih kategori produk.
+
+   ```tsx
+   // src/components/form/FormSelect.tsx
+   interface FormSelectType {
+     defaultValue?: string;
+     label: string;
+     list: string[];
+     name: string;
+   }
+
+   const FormSelect = ({ defaultValue, label, list, name }: FormSelectType) => {
+     return (
+       <div className="form-control">
+         <label className="label">
+           <span className="capitalize label-text">{label}</span>
+         </label>
+         <select
+           name={name}
+           defaultValue={defaultValue}
+           className="select select-bordered"
+         >
+           {list.map((item) => (
+             <option key={item} value={item}>
+               {item}
+             </option>
+           ))}
+         </select>
+       </div>
+     );
+   };
+
+   export default FormSelect;
+   ```
+
+Komponen ini menerima properti label, name, list, dan defaultValue untuk membuat dropdown yang dapat digunakan ulang.
+
+4. Membuat Komponen Filter<br/>
+   Setelah kita memiliki komponen input dan select, kita akan membuat komponen Filter yang menggabungkan kedua komponen tersebut.
+
+   ```tsx
+   // src/components/Filter.tsx
+
+   import { Form, Link, useLoaderData } from 'react-router-dom';
+   import FormInput from './form/FormInput';
+   import FormSelect from './form/FormSelect';
+
+   const Filter = () => {
+     const categories = ['Sepatu', 'Baju', 'Celana'];
+     const { params } = useLoaderData() as {
+       params: { [key: string]: string };
+     };
+     const { name, category } = params;
+
+     return (
+       <Form
+         method="get"
+         className="grid grid-cols-2 px-8 py-4 rounded-md bg-base-200 gap-x-4 gap-y-3"
+       >
+         <FormInput
+           label="Search Product"
+           name="name"
+           type="search"
+           defaultValue={name}
+         />
+         <FormSelect
+           label="Select category"
+           name="category"
+           list={categories}
+           defaultValue={category}
+         />
+         <button type="submit" className="btn btn-primary">
+           Search
+         </button>
+         <Link to={'/products'} className="btn btn-accent">
+           Reset
+         </Link>
+       </Form>
+     );
+   };
+
+   export default Filter;
+   ```
+
+   Komponen ini menggabungkan FormInput dan FormSelect serta menyediakan tombol Search dan Reset. Data dari loader digunakan untuk mengisi nilai default pada form.
+
+5. Menyiapkan Loader untuk Mengambil Data Produk<br/>
+   Loader digunakan untuk mengambil data produk dari API sebelum komponen dirender.
+
+   ```tsx
+   import { useLoaderData } from 'react-router-dom';
+   import customAPI from '../api';
+   import { ProductType } from '../types/ProductTypes';
+   import Filter from '../components/Filter';
+   import ProductCard from '../components/ProductCard';
+
+   //------------------------------------------------------------------------------------------------------------
+   export const ProductViewLoader = async ({
+     request,
+   }: {
+     request: Request;
+   }) => {
+     const params = Object.fromEntries([
+       ...new URL(request?.url).searchParams.entries(),
+     ]);
+
+     const response = await customAPI.get('/products', { params: params });
+     console.log('request', request);
+     console.log('params', params);
+
+     const products = response?.data?.data;
+
+     return { products, params };
+   };
+   //------------------------------------------------------------------------------------------------------------
+
+   const ProductView = () => {
+     return <div>Product View</div>;
+   };
+
+   export default ProductView;
+   ```
+
+6. Import dan assign loader di product view tadi di bagian router <br/>
+
+   ```tsx
+   // src/App.tsx
+
+   import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
+   // Components
+   import PublicLayout from './layouts/PublicLayout';
+   import HomeView from './pages/HomeView';
+   import ProductView from './pages/ProductView';
+   import OrderView from './pages/OrderView';
+   import CartView from './pages/CartView';
+   import AboutView from './pages/AboutView';
+   import LoginView from './pages/auth/LoginView';
+   import Register from './pages/auth/Register';
+   import DetailProduct from './pages/DetailProduct';
+
+   // Loader
+   import { HomeLoader } from './pages/HomeView';
+   //---------------------------------------------------------------------------------
+   import { ProductViewLoader } from './pages/ProductView';
+   //---------------------------------------------------------------------------------
+
+   const router = createBrowserRouter([
+     {
+       path: '/',
+       element: <PublicLayout />,
+       children: [
+         {
+           index: true,
+           element: <HomeView />,
+           loader: HomeLoader,
+         },
+         {
+           path: 'products',
+           element: <ProductView />,
+           //---------------------------------------------------------------------------------
+           loader: ProductViewLoader,
+           //---------------------------------------------------------------------------------
+         },
+         {
+           path: 'products/:id',
+           element: <DetailProduct />,
+         },
+         {
+           path: 'orders',
+           element: <OrderView />,
+         },
+         {
+           path: 'cart',
+           element: <CartView />,
+         },
+         {
+           path: 'about',
+           element: <AboutView />,
+         },
+       ],
+     },
+     {
+       path: '/login',
+       element: <LoginView />,
+     },
+     {
+       path: 'register',
+       element: <Register />,
+     },
+   ]);
+
+   function App() {
+     return <RouterProvider router={router} />;
+   }
+
+   export default App;
+   ```
+
+7. Ambil data product dengan memanfaatkan `useLoader`<br/>
+
+   ```tsx
+   // src/pages/ProductView.tsx
+
+   import { useLoaderData } from 'react-router-dom';
+   import customAPI from '../api';
+   import { ProductType } from '../types/ProductTypes';
+   import Filter from '../components/Filter';
+   import ProductCard from '../components/ProductCard';
+
+   export const ProductViewLoader = async ({
+     request,
+   }: {
+     request: Request;
+   }) => {
+     const params = Object.fromEntries([
+       ...new URL(request?.url).searchParams.entries(),
+     ]);
+
+     const response = await customAPI.get('/products', { params: params });
+     console.log('request', request);
+     console.log('params', params);
+
+     const products = response?.data?.data;
+
+     return { products, params };
+   };
+
+   const ProductView = () => {
+     //----------------------------------------------------------------------------------
+     const { products } = useLoaderData() as { products: ProductType[] };
+     console.log(products);
+     //----------------------------------------------------------------------------------
+
+     return <div>Product View</div>;
+   };
+
+   export default ProductView;
+   ```
+
+8. Tambahkan komponen Filter di pages `Product View`
+
+   ```tsx
+   // src/pages/ProductView
+
+   import { useLoaderData } from 'react-router-dom';
+   import customAPI from '../api';
+   import { ProductType } from '../types/ProductTypes';
+   import Filter from '../components/Filter';
+   import ProductCard from '../components/ProductCard';
+
+   export const ProductViewLoader = async ({
+     request,
+   }: {
+     request: Request;
+   }) => {
+     const params = Object.fromEntries([
+       ...new URL(request?.url).searchParams.entries(),
+     ]);
+
+     const response = await customAPI.get('/products', { params: params });
+     console.log('request', request);
+     console.log('params', params);
+
+     const products = response?.data?.data;
+     console.log(products);
+
+     return { products, params };
+   };
+
+   const ProductView = () => {
+     const { products } = useLoaderData() as { products: ProductType[] };
+
+     return (
+       <>
+         <Filter />
+         <div className="grid grid-cols-2 gap-5 mt-5 md:grid-cols-3 lg:grid-cols-4">
+           {!products?.length ? (
+             <h1 className="text-3xl font-bold col-span-full">
+               Produk tidak ditemukan
+             </h1>
+           ) : (
+             products?.map((product) => (
+               <ProductCard
+                 key={product?._id}
+                 name={product?.name}
+                 category={product?.category}
+                 description={product?.description}
+                 image={product?.image}
+                 _id={product?._id}
+                 price={product?.price}
+                 stock={product?.stock}
+               />
+             ))
+           )}
+         </div>
+       </>
+     );
+   };
+
+   export default ProductView;
+   ```
