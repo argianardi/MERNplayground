@@ -1,14 +1,57 @@
-import axios from 'axios';
+import { useEffect, useState } from 'react';
+import customAPI from '../api';
+import ProductCard from '../components/ProductCard';
+import { ProductType } from '../types/ProductTypes';
+import { useLoaderData } from 'react-router-dom';
+import Hero from '../components/Hero';
 
-try {
-  const data = await axios.get('/api/v1/products');
-  console.log(data);
-} catch (error) {
-  console.log(error);
-}
+export const HomeLoader = async () => {
+  try {
+    // setIsLoading(true);
+    const response = await customAPI.get('/products?limit=3');
+    // setProducts(response?.data?.data);
+    const products: ProductType[] = response?.data?.data;
+    return { products };
+  } catch (error) {
+    console.log(error);
+  } finally {
+    // setIsLoading(false);
+  }
+};
 
 const HomeView = () => {
-  return <div className="text-red-600 font-bold underline">HomeView</div>;
+  const { products } = useLoaderData() as { products: ProductType[] };
+  console.log(products);
+
+  // const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // useEffect(() => {
+  //   getAllProducts();
+  // }, []);
+
+  return (
+    <>
+      <Hero products={products} />
+      <div className="pb-5 mt-5 border-b border-primary">
+        <h2 className="text-2xl font-bold capitalize">Product List</h2>
+      </div>
+      <div className="grid gap-5 mt-5 md:grid-cols-2 lg:grid-cols-3">
+        {products.map((product: ProductType) => (
+          <ProductCard
+            key={product?._id}
+            _id={product?._id}
+            name={product.name}
+            price={product?.price}
+            image={product?.image}
+            description={product?.description}
+            category={product?.category}
+            stock={product?.stock}
+          />
+        ))}
+      </div>
+    </>
+  );
 };
 
 export default HomeView;
