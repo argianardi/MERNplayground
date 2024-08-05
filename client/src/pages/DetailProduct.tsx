@@ -14,7 +14,7 @@ const DetailProduct = () => {
 
   useEffect(() => {
     fetchProductById();
-  }, [id]);
+  }, []);
 
   const fetchProductById = async () => {
     try {
