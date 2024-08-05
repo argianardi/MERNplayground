@@ -6,8 +6,8 @@ const Hero = ({ products }: { products: ProductType[] }) => {
 
   return (
     <>
-      <div className="grid items-center gap-2 lg:grid-cols-2 ">
-        <div className="max-wxl">
+      <div className="grid items-center gap-8 lg:grid-cols-2 ">
+        <div className="w-full lg:w-[500px]">
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
             Selamat datang di Mern Shop
           </h1>
@@ -23,7 +23,7 @@ const Hero = ({ products }: { products: ProductType[] }) => {
             </Link>
           </div>
         </div>
-        <div className="hidden p-4 space-x-4 lg:carousel carousel-center bg-neutral rounded-box h-72">
+        <div className="hidden w-full p-4 space-x-4 lg:carousel carousel-center bg-neutral rounded-box h-60">
           {products.map((product) => (
             <div key={product?._id} className="h-full carousel-item">
               <img
