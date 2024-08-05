@@ -21,7 +21,6 @@ export const HomeLoader = async () => {
 
 const HomeView = () => {
   const { products } = useLoaderData() as { products: ProductType[] };
-  console.log(products);
 
   // const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
