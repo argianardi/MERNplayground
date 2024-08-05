@@ -1,4 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
+// Components
 import PublicLayout from './layouts/PublicLayout';
 import HomeView from './pages/HomeView';
 import ProductView from './pages/ProductView';
@@ -9,6 +11,10 @@ import LoginView from './pages/auth/LoginView';
 import Register from './pages/auth/Register';
 import DetailProduct from './pages/DetailProduct';
 
+// Loader
+import { HomeLoader } from './pages/HomeView';
+import { ProductViewLoader } from './pages/ProductView';
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -17,10 +23,12 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <HomeView />,
+        loader: HomeLoader,
       },
       {
         path: 'products',
         element: <ProductView />,
+        loader: ProductViewLoader,
       },
       {
         path: 'products/:id',
