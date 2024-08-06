@@ -7,3 +7,13 @@ export interface ProductType {
   price: number;
   stock: number;
 }
+
+export interface ProductLoaderType {
+  products: ProductType[];
+  pagination: {
+    totalItems: number;
+    pageSize: number;
+    totalPages: number;
+    currentPage: number;
+  };
+}
