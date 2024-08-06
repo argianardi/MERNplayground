@@ -1,8 +1,9 @@
 import { useLoaderData } from 'react-router-dom';
 import customAPI from '../api';
-import { ProductType } from '../types/ProductTypes';
+import { ProductLoaderType } from '../types/ProductTypes';
 import Filter from '../components/Filter';
 import ProductCard from '../components/ProductCard';
+import Pagination from '../components/Pagination';
 
 export const ProductViewLoader = async ({ request }: { request: Request }) => {
   const params = Object.fromEntries([
@@ -14,17 +15,20 @@ export const ProductViewLoader = async ({ request }: { request: Request }) => {
   console.log('params', params);
 
   const products = response?.data?.data;
-  console.log(products);
+  const pagination = response.data?.pagination;
 
-  return { products, params };
+  return { products, params, pagination };
 };
 
 const ProductView = () => {
-  const { products } = useLoaderData() as { products: ProductType[] };
+  const { products, pagination } = useLoaderData() as ProductLoaderType;
 
   return (
     <>
       <Filter />
+      <h3 className="text-3xl font-bold text-right text-primary">
+        Total: {pagination?.totalItems} Produk
+      </h3>
       <div className="grid grid-cols-2 gap-5 mt-5 md:grid-cols-3 lg:grid-cols-4">
         {!products?.length ? (
           <h1 className="text-3xl font-bold col-span-full">
@@ -44,6 +48,9 @@ const ProductView = () => {
             />
           ))
         )}
+      </div>
+      <div className="flex justify-center mt-5">
+        <Pagination />
       </div>
     </>
   );
