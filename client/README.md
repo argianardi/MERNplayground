@@ -276,7 +276,7 @@ Dalam mengembangkan aplikasi web dengan React, seringkali kita perlu berkomunika
 
 ## Form Filter untuk Produk Menggunakan React Router
 
-Dalam pengembangan aplikasi, misalnya aplikasi e-commerce, form filter adalah fitur penting yang membantu user menemukan produk dengan lebih mudah. Kali ini akan membahas cara membuat form filter produk dengan menggunakan React dan React Router. Kita akan membuat form filter yang mencakup input pencarian dan dropdown kategori.
+Dalam pengembangan aplikasi, misalnya aplikasi e-commerce, form filter adalah fitur penting yang membantu user menemukan produk dengan lebih mudah. Kali ini akan membahas cara membuat form filter produk dengan menggunakan React dan React Router. Kita akan membuat form filter yang mencakup input pencarian dan dropdown kategori. Berikut langkah - langkahnya [ref](https://www.youtube.com/watch?v=Lb1pigOngeU&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=31) [ref2](https://www.youtube.com/watch?v=qTPDxpnkXpI&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=32)
 
 1. Membuat Komponen Input Form <br/>
    Komponen pertama yang akan kita buat adalah komponen `FormInput` yang akan digunakan untuk menerima input pencarian dari user.
@@ -614,3 +614,153 @@ Komponen ini menerima properti label, name, list, dan defaultValue untuk membuat
 
    export default ProductView;
    ```
+
+## Fitur Pagination Menggunakan Use Loader, Use Navigate dan Use Location
+
+Kali ini, kita akan membahas bagaimana menerapkan fitur pagination dengan menggunakan useLoaderData, useLocation, dan useNavigate dari React Router. Fitur pagination ini memungkinkan user untuk melihat daftar produk yang dibagi menjadi beberapa halaman [ref](https://www.youtube.com/watch?v=VwvnFZYwHB0&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=33).
+
+1.  useLoaderData<br/>
+
+    - Hook ini digunakan untuk mengakses data yang dimuat oleh loader di dalam komponen React.
+    - Data ini biasanya berasal dari request API yang dilakukan di dalam loader.
+    - Di dalam case pagination ini useLoaderData digunakan untuk mendapatkan informasi pagination dari API.
+
+2.  useLocation<br/>
+
+    - Hook ini digunakan untuk mengakses objek lokasi saat ini, yang berisi informasi tentang URL yang sedang diakses.
+    - Sangat berguna untuk mendapatkan parameter query dari URL.
+    - Di dalam case pagination ini useLocation digunakan untuk mendapatkan informasi URL saat ini untuk mengambil nilai `search` dan `pathname`
+
+      - pathname adalah bagian dari URL yang mewakili path saat ini.
+      - Contoh: Jika URL saat ini adalah `https://basedomain.com/products?name=igra&category=Sepatu&page=2`, maka pathname adalah `/products`.
+        Dalam konteks pagination, pathname digunakan untuk memastikan navigasi tetap pada rute yang sama ketika parameter query (seperti nomor halaman) berubah.
+      - search adalah bagian dari URL yang berisi query string, termasuk semua parameter query.
+      - Contoh: Jika URL saat ini adalah `https://basedomain.com/products?name=igra&category=Sepatu&page=2`, maka search adalah `?name=igra&category=Sepatu`.
+      - Dalam pagination, search digunakan untuk memodifikasi parameter query yang ada (seperti name untuk memfilter product berdasarnkan namanya) tanpa menghapus parameter query lainnya.
+
+3.  useNavigate<br/>
+    - Hook ini digunakan untuk melakukan navigasi programatik ke rute yang berbeda.
+    - Dalam konteks pagination, ini digunakan untuk mengubah halaman tanpa perlu merefresh halaman secara keseluruhan.
+
+Berikut langkah - langkahnya;
+
+- Buat komponent Pagination
+
+  ```tsx
+  // src/components/Pagination.tsx
+  import { useLoaderData, useLocation, useNavigate } from 'react-router-dom';
+  import { ProductLoaderType } from '../types/ProductTypes';
+
+  const Pagination = () => {
+    const { pagination } = useLoaderData() as ProductLoaderType;
+    const { currentPage, totalPages } = pagination;
+    const { search, pathname } = useLocation(); // Mengambil `search` dan `pathname` dari URL saat ini
+    const navigate = useNavigate();
+
+    const handleChangePage = (page: number) => {
+      const searchParams = new URLSearchParams(search); // Menggunakan `search` untuk mendapatkan parameter query saat ini
+      searchParams.set('page', page.toString()); // Mengubah atau menambahkan parameter `page`
+      navigate(`${pathname}?${searchParams.toString()}`); // Menavigasi ke URL baru dengan `pathname` dan query string yang telah dimodifikasi
+    };
+
+    const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
+
+    return (
+      <div className="join">
+        {pages.map((pageNumber) => (
+          <button
+            key={pageNumber}
+            className={`btn btn-md border-none join-item ${
+              currentPage === pageNumber ? 'btn-primary' : ''
+            }`}
+            onClick={() => handleChangePage(pageNumber)}
+          >
+            {pageNumber}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  export default Pagination;
+  ```
+
+- Tambahkan Komponen Pagination di page `ProductView`<br/>
+  Pada product view ini:
+
+  - Menggunakan `useLoaderData` untuk mendapatkan data produk dan pagination yang sudah dimuat oleh loader.
+  - Menampilkan daftar produk menggunakan komponen `ProductCard` dan pagination menggunakan komponen `Pagination`.
+
+  ```tsx
+  // src/pages/ProductView.tsx
+
+  import { useLoaderData } from 'react-router-dom';
+  import customAPI from '../api';
+  import { ProductLoaderType } from '../types/ProductTypes';
+  import Filter from '../components/Filter';
+  import ProductCard from '../components/ProductCard';
+  import Pagination from '../components/Pagination';
+
+  export const ProductViewLoader = async ({
+    request,
+  }: {
+    request: Request;
+  }) => {
+    const params = Object.fromEntries([
+      ...new URL(request?.url).searchParams.entries(),
+    ]);
+
+    const response = await customAPI.get('/products', { params: params });
+    console.log('request', request);
+    console.log('params', params);
+
+    const products = response?.data?.data;
+    const pagination = response.data?.pagination;
+
+    // ----------------------------------------------------------------------------------------------
+    return { products, params, pagination };
+    // ----------------------------------------------------------------------------------------------
+  };
+
+  const ProductView = () => {
+    const { products, pagination } = useLoaderData() as ProductLoaderType;
+
+    return (
+      <>
+        <Filter />
+        <h3 className="text-3xl font-bold text-right text-primary">
+          Total: {pagination?.totalItems} Produk
+        </h3>
+        <div className="grid grid-cols-2 gap-5 mt-5 md:grid-cols-3 lg:grid-cols-4">
+          {!products?.length ? (
+            <h1 className="text-3xl font-bold col-span-full">
+              Produk tidak ditemukan
+            </h1>
+          ) : (
+            products?.map((product) => (
+              <ProductCard
+                key={product?._id}
+                name={product?.name}
+                category={product?.category}
+                description={product?.description}
+                image={product?.image}
+                _id={product?._id}
+                price={product?.price}
+                stock={product?.stock}
+              />
+            ))
+          )}
+        </div>
+        <div className="flex justify-center mt-5">
+          //
+          ----------------------------------------------------------------------------------------------
+          <Pagination />
+          //
+          ----------------------------------------------------------------------------------------------
+        </div>
+      </>
+    );
+  };
+
+  export default ProductView;
+  ```
