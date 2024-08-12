@@ -1,7 +1,11 @@
-import React from 'react';
+import FormAuth from '../../components/FormAuth';
 
 const Register = () => {
-  return <div>Register</div>;
+  return (
+    <main>
+      <FormAuth isRegister={true} />
+    </main>
+  );
 };
 
 export default Register;
