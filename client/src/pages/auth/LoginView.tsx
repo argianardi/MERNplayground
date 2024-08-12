@@ -1,7 +1,11 @@
-import React from 'react';
+import FormAuth from '../../components/FormAuth';
 
 const LoginView = () => {
-  return <div>LoginView</div>;
+  return (
+    <main>
+      <FormAuth isRegister={false} />
+    </main>
+  );
 };
 
 export default LoginView;
