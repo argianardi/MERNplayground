@@ -141,6 +141,7 @@ Stream adalah abstraksi untuk bekerja dengan data yang dapat dibaca atau ditulis
 - Transform Stream: Stream yang dapat mengubah data saat sedang dibaca atau ditulis. Contohnya, zlib untuk kompresi.
 
 Berikut fitur utama stream:
+
 - Pemrosesan Data Secara Bertahap: Stream memungkinkan pemrosesan data dalam potongan-potongan kecil (chunk) daripada memproses seluruh data sekaligus.
 - Penggunaan Memori yang Efisien: Dengan memproses data dalam chunk, stream mengurangi penggunaan memori dan memungkinkan pemrosesan data yang sangat besar.
 - Interaksi dengan Buffer: Stream sering digunakan bersama buffer untuk membaca atau menulis data dalam bentuk byte.
@@ -2807,4 +2808,83 @@ Berikut adalah langkah-langkah untuk mengimplementasikan upload file ke Cloudina
    //------------------------------------------------------------------------------------
 
    export default router;
+   ```
+
+## CORS di Backend
+
+Jika kita mengalami masalah CORS (Cross-Origin Resource Sharing) di backend, yaitu ketika frontend mengakses API yang kita buat. Kita perlu mengatur server backend agar mengizinkan permintaan dari domain lain. Ini bisa dilakukan dengan menambahkan middleware CORS di backend kita.
+
+Langkah-langkah untuk Mengatasi Masalah CORS di Backend:
+
+1. Install CORS Middleware<br/>
+   install middleware cors dengan command
+   ```ts
+   npm install cors
+   ```
+2. Gunakan CORS Middleware di Express<br/>
+   Tambahkan middleware cors di file utama backend Anda (biasanya `app.js`, `index.js` atau `server.js`).
+
+   ```js
+   import express from 'express';
+   import dotenv from 'dotenv';
+   import cookieParser from 'cookie-parser';
+   import helmet from 'helmet';
+   import ExpressMongoSanitize from 'express-mongo-sanitize';
+   // ----------------------------------------------------------------
+   import cors from 'cors';
+   // ----------------------------------------------------------------
+   import { v2 as cloudinary } from 'cloudinary';
+
+   dotenv.config();
+   const app = express();
+
+   import connectDB from './config/db.js';
+   import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
+   import authRouter from './routes/authRouter.js';
+   import productRouter from './routes/productRouter.js';
+   import orderRouter from './routes/orderRouter.js';
+
+   // Configuration
+   cloudinary.config({
+     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+     api_key: process.env.CLOUDINARY_API_KEY,
+     api_secret: process.env.CLOUDINARY_API_SECRET,
+   });
+
+   // Middleware
+   // ----------------------------------------------------------------
+   app.use(
+     cors({
+       origin: '*',
+       methods: 'GET,PUT,PATCH,POST,DELETE',
+       credentials: true,
+     })
+   );
+   // ----------------------------------------------------------------
+   app.use(express.json());
+   app.use(helmet());
+   app.use(ExpressMongoSanitize());
+   app.use(express.urlencoded({ extended: true }));
+   app.use(cookieParser());
+   app.use(express.static('./public'));
+
+   // Route
+   app.use('/api/v1/auth', authRouter);
+   app.use('/api/v1/products', productRouter);
+   app.use('/api/v1/orders', orderRouter);
+
+   // Error handling
+   app.use(notFound);
+   app.use(errorHandler);
+
+   // Connect DB
+   connectDB();
+
+   // Port
+   const PORT = process.env.PORT || 3010;
+
+   // Server
+   app.listen(PORT, () => {
+     console.log(`Server running on port http://localhost:${PORT}`);
+   });
    ```
