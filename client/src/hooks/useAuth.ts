@@ -43,7 +43,7 @@ import authService from '../services/authService';
 // Menggunaakan state management dan validasi
 interface useAuthReturnType {
   handleSubmit: (Event: FormEvent, fields: FormDataType) => void;
-  error: string | null;
+  errors: ErrorsType;
   isLoading: boolean;
   formData: FormDataType;
   handleChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -55,13 +55,20 @@ interface FormDataType {
   password: string;
 }
 
+interface ErrorsType {
+  name?: string;
+  email?: string;
+  password?: string;
+  apiError?: string;
+}
+
 const useAuth = (isRegister: boolean): useAuthReturnType => {
   const [formData, setFormData] = useState<FormDataType>({
     name: '',
     email: '',
     password: '',
   });
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<ErrorsType>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const navigate = useNavigate();
 
@@ -72,47 +79,52 @@ const useAuth = (isRegister: boolean): useAuthReturnType => {
       ...prevData,
       [name]: value,
     }));
+
+    // Clear the error for the field that is being modified
+    setErrors((prevErrors) => ({ ...prevErrors, [name]: '' }));
   };
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const { name, email, password } = formData;
+    const newErrors: ErrorsType = {};
 
-    if (!email || !password || (isRegister && !name)) {
-      return 'Please fill in all required fields.';
+    if (isRegister && !name) {
+      newErrors.name = 'Name is required';
+    } else if (name.length < 3 && isRegister) {
+      newErrors.name = 'Name must be at least 3 characters long.';
     }
 
-    if (name.length < 3 && isRegister) {
-      return 'Name must be at least 3 characters long.';
+    if (!email) {
+      newErrors.email = 'Email is required.';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Invalid email address.';
     }
-
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      return 'Invalid email address.';
+    if (!password) {
+      newErrors.password = 'Password is required';
+    } else if (password.length < 3) {
+      newErrors.password = 'Password must be at least 3 characters long.';
     }
+    setErrors(newErrors);
 
-    if (password.length < 3) {
-      return 'Password must be at least 3 characters long.';
-    }
-
-    return '';
+    // If there are no errors, return true, otherwise false
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (event: FormEvent, fields: FormDataType) => {
     event.preventDefault();
     setIsLoading(true);
-    setError('');
+    setErrors({});
 
-    const validationError = validateForm();
+    const isValid = validateForm();
 
-    if (validationError) {
-      setError(validationError);
+    if (!isValid) {
       setIsLoading(false);
       return;
     }
 
     try {
       const url = isRegister ? '/auth/register' : '/auth/login';
-      const response = await authService(url, fields);
-      console.log(response);
+      await authService(url, fields);
 
       if (isRegister) {
         navigate('/login');
@@ -120,13 +132,19 @@ const useAuth = (isRegister: boolean): useAuthReturnType => {
         navigate('/');
       }
     } catch (error: any) {
-      setError(error?.message);
+      setErrors({ ...errors, apiError: error.message });
     } finally {
       setIsLoading(false);
     }
   };
 
-  return { handleSubmit, error, isLoading, formData, handleChange };
+  return {
+    handleSubmit,
+    errors,
+    isLoading,
+    formData,
+    handleChange,
+  };
 };
 
 export default useAuth;
