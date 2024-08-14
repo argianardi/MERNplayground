@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import ExpressMongoSanitize from 'express-mongo-sanitize';
+import cors from 'cors';
 import { v2 as cloudinary } from 'cloudinary';
 
 dotenv.config();
@@ -22,6 +23,13 @@ cloudinary.config({
 });
 
 // Middleware
+app.use(
+  cors({
+    origin: '*',
+    methods: 'GET,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(helmet());
 app.use(ExpressMongoSanitize());
