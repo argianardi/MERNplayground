@@ -764,3 +764,521 @@ Berikut langkah - langkahnya;
 
   export default ProductView;
   ```
+
+## Fitur Login Dan Register
+
+Untuk melanjutkan fitur login dan register di sisi frontend, kita perlu menambahkan beberapa hal berikut:
+
+- Mengirim Data ke Backend (API Calls)<br/>
+  kita perlu mengirim data form ke backend menggunakan fetch atau library seperti Axios. Berdasarkan apakah itu halaman login atau register, kita akan mengirim permintaan POST ke endpoint /register atau /login.
+- Menangani Respons dari Backend<br/>
+  Setelah mengirim data, kita perlu menangani respons dari backend. Jika login atau register berhasil, simpan token JWT di cookie atau local storage dan arahkan user ke halaman yang sesuai.
+- Mengelola Status Authentikasi<br/>
+  kita perlu mengelola status autentikasi user di frontend, misalnya dengan menggunakan Context API atau Redux untuk menyimpan status autentikasi global.
+
+### Fitur Login Dan Register Tanpa Global State
+
+Berikut beberapa langkah yang bisa kita lakukan:
+
+1. Atur Konfigurasi Server <br/>
+   Untuk menghubungkan ke server api dari backendkita perlu mengatur konfigurasi server dengan menggunakan properti server dalam objek konfigurasi Vite. Dalam contoh ini, kita akan mengarahkan request ke server api backend dengan menggunakan properti proxy.
+
+   ```ts
+   import { defineConfig } from 'vite';
+   import react from '@vitejs/plugin-react-swc';
+
+   export default defineConfig({
+     plugins: [react()],
+     //--------------------------------------------------------
+     server: {
+       proxy: {
+         '/api': {
+           target: 'http://localhost:3002',
+           changeOrigin: true,
+         },
+       },
+     },
+     //--------------------------------------------------------
+   });
+   ```
+
+2. Buat Custom API untuk mendaftarkan base url API Backend <br/>
+
+   ```ts
+   // src/services/index.ts
+
+   import axios from 'axios';
+
+   const customAPI = axios.create({
+     baseURL: '/api/v1',
+     withCredentials: true, // Mengizinkan pengiriman cookies bersama permintaan
+   });
+
+   export default customAPI;
+   ```
+
+   `withCredentials: true` di customAPI diata:
+
+   - Opsi ini memberitahu axios untuk menyertakan cookies dalam permintaan yang dikirimkan ke server, bahkan jika permintaan tersebut lintas domain.
+   - Ini penting jika server Anda mengandalkan cookies untuk autentikasi (seperti JWT dalam cookie) karena tanpa `withCredentials: true`, cookies tidak akan disertakan dan server tidak akan mengenali permintaan sebagai autentik.
+
+3. Buat auth service <br/>
+   Buat service auth yang berisi method untuk melakukan fethc api untuk fitur login dan register.
+
+   ```ts
+   // src/services/authService.ts
+
+   import customAPI from '.';
+
+   const authService = async (url: string, data: Record<string, any>) => {
+     console.log(data);
+
+     try {
+       const response = await customAPI.post(url, data);
+       console.log(response);
+
+       return response.data.data;
+     } catch (error: any) {
+       if (error.response) {
+         throw new Error(
+           error?.response.data.message || 'Something went wrong'
+         );
+       } else {
+         throw new Error('Network error');
+       }
+     }
+   };
+
+   export default authService;
+   ```
+
+4. Buat custom hook bernama `useAuth `untuk Login dan Register <br/>
+   Hook ini digunakan untuk menghandle proses autentikasi dan registrasi user. `useAuth `ini bertugas untuk mengelola state untuk loading, error, dan logika submit form.
+
+   ```ts
+   // src/hooks/useAuth.ts
+
+   import { FormEvent, useState } from 'react';
+   import { useNavigate } from 'react-router-dom';
+   import authService from '../services/authService';
+
+   const useAuth = (isRegister: boolean) => {
+     const [error, setError] = useState<string | null>(null);
+     const [isLoading, setIsLoading] = useState<boolean>(false);
+     const navigate = useNavigate();
+
+     const handleSubmit = async (event: FormEvent) => {
+       event.preventDefault();
+       setIsLoading(true);
+       setError(null);
+
+       const formData = new FormData(event.target as HTMLFormElement);
+       const data = Object.fromEntries(formData.entries());
+       console.log(data);
+
+       const url = isRegister ? '/auth/register' : '/auth/login';
+
+       try {
+         const response = await authService(url, data);
+
+         if (isRegister) {
+           navigate('/login');
+         } else {
+           navigate('/');
+         }
+       } catch (error: any) {
+         setError(error?.message);
+       } finally {
+         setIsLoading(false);
+       }
+     };
+
+     return { handleSubmit, error, isLoading };
+   };
+
+   export default useAuth;
+   ```
+
+5. Buat Komponen `FormAuth` <br/>
+   `FormAuth` ini akan Menggunakan hook `useAuth` untuk menangani submit form, error handling, dan menampilkan loading spinner.
+
+   ```tsx
+   // src/components/FormAuth.tsx
+
+   import { Link } from 'react-router-dom';
+   import FormInput from './form/FormInput';
+   import useAuth from '../hooks/useAuth';
+   import LoadingSpinner from './LoadingSpinner';
+   import ErrorMessage from './ErrorMessage';
+
+   const FormAuth = ({ isRegister }: { isRegister: boolean }) => {
+     const { handleSubmit, error, isLoading } = useAuth(isRegister);
+
+     return (
+       <div className="grid h-screen place-items-center">
+         <form
+           className="flex flex-col p-8 shadow-lg card w-96 bg-base-300 gap-y-4"
+           onSubmit={handleSubmit}
+         >
+           <h4 className="text-3xl font-bold text-center">
+             {isRegister ? 'Register' : 'Login'}
+           </h4>
+           {isRegister && <FormInput type="text" name="name" label="name" />}
+           <FormInput type="email" name="email" label="email" />
+           <FormInput type="password" name="password" label="password" />
+           {isLoading ? (
+             <LoadingSpinner />
+           ) : (
+             <div className="mt-4">
+               <button className="btn btn-primary btn-block">
+                 {isRegister ? 'Register' : 'Login'}
+               </button>
+             </div>
+           )}
+
+           {error && <ErrorMessage message={error} />}
+
+           {isRegister ? (
+             <p className="text-center">
+               Sudah punya akun?{' '}
+               <Link to={'/login'} className="ml-2 link link-hover link-accent">
+                 Login
+               </Link>
+             </p>
+           ) : (
+             <p className="text-center">
+               Belum punya akun?{' '}
+               <Link
+                 to={'/register'}
+                 className="ml-2 link link-hover link-accent"
+               >
+                 Register
+               </Link>
+             </p>
+           )}
+         </form>
+       </div>
+     );
+   };
+
+   export default FormAuth;
+   ```
+
+   Berikut komponen `FormInput` yang digunakan di komponen `FormAuth` diatas
+
+   ```tsx
+   // src/components/form/FormInput
+
+   interface FormInputType {
+     defaultValue?: string;
+     label: string;
+     type: string;
+     name: string;
+   }
+
+   const FormInput = ({ label, name, type, defaultValue }: FormInputType) => {
+     return (
+       <label className="form-control">
+         <label className="label">
+           <span className="capitalize label-text">{label}</span>
+         </label>
+         <input
+           type={type}
+           name={name}
+           defaultValue={defaultValue}
+           className="input input-bordered"
+         />
+       </label>
+     );
+   };
+
+   export default FormInput;
+   ```
+
+#### Mengapa Tidak Menggunakan useState untuk Input Form?
+
+Alasan mengapa fitur login dan register pada komponen `FormAuth` tidak menggunakan state dan setState untuk mengelola nilai input seperti email, name, dan password adalah karena penggunaan onSubmit event pada form lebih sederhana dan efisien dalam konteks ini. Berikut adalah penjelasan lebih lanjut:
+
+1. Pengelolaan State Input Secara Implisit melalui Form Handling
+   Dalam form HTML, elemen form seperti input secara otomatis mengelola nilai mereka sendiri. Ketika form di-submit, browser akan mengirimkan nilai dari semua input form yang memiliki atribut name melalui event submit (perlu diperhatikan agar nama di atribut name harus sama dengan nama di body request api yang kita akses). Ini berarti Anda tidak perlu secara eksplisit mengelola state untuk setiap input jika Anda hanya perlu mengirim nilai tersebut pada saat form di-submit.
+2. Memanfaatkan onSubmit untuk Mengirim Data. <br/>
+   Alih-alih menggunakan state untuk melacak nilai input, FormAuth memanfaatkan event onSubmit pada form untuk mengirim data ke server. Dengan cara ini, Anda bisa langsung mengambil nilai dari input melalui event submit tanpa perlu memisahkan setiap input ke dalam state individu.
+3. Penggunaan Hook `useAuth` <br/>
+   Dalam implementasi ini, hook `useAuth` menangani logika pengiriman form dan penanganan error/loading. Hook ini menggunakan handleSubmit, yang menangkap event submit dan mengambil data dari form untuk dikirim ke backend.
+   ```ts
+   const { handleSubmit, error, isLoading } = useAuth(isRegister);
+   ```
+4. Pengurangan Kompleksitas <br/>
+   Menggunakan state untuk setiap input bisa menambah kompleksitas kode. Setiap input perlu memiliki state, onChange handler, dan setState untuk memperbarui nilai. Jika Anda hanya perlu mengambil nilai input saat form di-submit, menggunakan event.target.elements atau new FormData(event.target) sudah cukup dan lebih sederhana.
+5. Skenario di mana useState Mungkin Dibutuhkan
+   - Validasi secara real-time<br/>
+     Jika Anda membutuhkan validasi langsung (real-time) saat pengguna mengetik, seperti memeriksa apakah email valid atau password cukup kuat, maka menggunakan state dan onChange handler mungkin diperlukan.
+   - Penggunaan di luar form submission<br/>
+     Jika nilai dari input digunakan di tempat lain dalam komponen atau harus diperbarui secara dinamis sebelum submit, Anda mungkin ingin mengelola nilai input dengan state.
+
+#### Mengelola State dan Validasi Form untuk Fitur Login dan Register dengan Custom Hook
+
+Kita bisa mengelola state untuk name, email, dan password dengan menggunakan custom hook yang mengelola state dan validasi secara terpisah. Berikut adalah contoh penerapan tersebut:
+
+1. Buat Custom Hook `useAuth` untuk Mengelola State dan Validasi <br/>
+   Custom Hook `useAuth` ini digunakan untuk manage state name, email password, menghandle proses autentikasi dan register.
+
+   ```ts
+   // src/hooks/useAuth.ts
+
+   import { ChangeEvent, FormEvent, useState } from 'react';
+   import { useNavigate } from 'react-router-dom';
+   import authService from '../services/authService';
+
+   interface useAuthReturnType {
+     handleSubmit: (Event: FormEvent, fields: FormDataType) => void;
+     errors: ErrorsType;
+     isLoading: boolean;
+     formData: FormDataType;
+     handleChange: (event: ChangeEvent<HTMLInputElement>) => void;
+   }
+
+   interface FormDataType {
+     name: string;
+     email: string;
+     password: string;
+   }
+
+   interface ErrorsType {
+     name?: string;
+     email?: string;
+     password?: string;
+     apiError?: string;
+   }
+
+   const useAuth = (isRegister: boolean): useAuthReturnType => {
+     const [formData, setFormData] = useState<FormDataType>({
+       name: '',
+       email: '',
+       password: '',
+     });
+     const [errors, setErrors] = useState<ErrorsType>({});
+     const [isLoading, setIsLoading] = useState<boolean>(false);
+     const navigate = useNavigate();
+
+     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+       const { name, value } = event.target;
+
+       setFormData((prevData) => ({
+         ...prevData,
+         [name]: value,
+       }));
+
+       // Clear the error for the field that is being modified
+       setErrors((prevErrors) => ({ ...prevErrors, [name]: '' }));
+     };
+
+     const validateForm = (): boolean => {
+       const { name, email, password } = formData;
+       const newErrors: ErrorsType = {};
+
+       if (isRegister && !name) {
+         newErrors.name = 'Name is required';
+       } else if (name.length < 3 && isRegister) {
+         newErrors.name = 'Name must be at least 3 characters long.';
+       }
+
+       if (!email) {
+         newErrors.email = 'Email is required.';
+       } else if (!/\S+@\S+\.\S+/.test(email)) {
+         newErrors.email = 'Invalid email address.';
+       }
+       if (!password) {
+         newErrors.password = 'Password is required';
+       } else if (password.length < 3) {
+         newErrors.password = 'Password must be at least 3 characters long.';
+       }
+       setErrors(newErrors);
+
+       // If there are no errors, return true, otherwise false
+       return Object.keys(newErrors).length === 0;
+     };
+
+     const handleSubmit = async (event: FormEvent, fields: FormDataType) => {
+       event.preventDefault();
+       setIsLoading(true);
+       setErrors({});
+
+       const isValid = validateForm();
+
+       if (!isValid) {
+         setIsLoading(false);
+         return;
+       }
+
+       try {
+         const url = isRegister ? '/auth/register' : '/auth/login';
+         await authService(url, fields);
+
+         if (isRegister) {
+           navigate('/login');
+         } else {
+           navigate('/');
+         }
+       } catch (error: any) {
+         setErrors({ ...errors, apiError: error.message });
+       } finally {
+         setIsLoading(false);
+       }
+     };
+
+     return {
+       handleSubmit,
+       errors,
+       isLoading,
+       formData,
+       handleChange,
+     };
+   };
+
+   export default useAuth;
+   ```
+
+   - ErrorType<br/>
+     Interface ini mendefinisikan struktur error untuk setiap field, yaitu name, email, dan password.
+   - errors<br/>
+     State ini menyimpan pesan error untuk masing-masing field.
+   - validateForm<br/>
+     Fungsi ini mengecek validitas setiap field dan mengisi objek errors dengan pesan error jika ada field yang tidak valid.
+   - handleChange<br/>
+     Selain memperbarui formData, fungsi ini juga membersihkan pesan error untuk field yang sedang diedit.
+   - handleSubmit<br/>
+     Fungsi ini hanya akan melanjutkan proses submit jika semua field valid, dan jika ada error dari server, akan ditampilkan pada form secara keseluruhan (form).
+
+2. Buat component `FormInput`
+
+   ```tsx
+   // src/components/FormInput.tsx
+
+   import { ChangeEvent } from 'react';
+
+   interface FormInputType {
+     label: string;
+     type: string;
+     name: string;
+     value: string;
+     onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+     error?: string;
+   }
+
+   const FormInput = ({
+     label,
+     name,
+     type,
+     value,
+     onChange,
+     error,
+   }: FormInputType) => {
+     return (
+       <div className="form-control">
+         <label className="label">
+           <span className="capitalize label-text">{label}</span>
+         </label>
+         <input
+           type={type}
+           name={name}
+           value={value}
+           onChange={onChange}
+           className="input input-bordered"
+         />
+         {error && <span className="text-sm text-red-500">{error}</span>}
+       </div>
+     );
+   };
+
+   export default FormInput;
+   ```
+
+3. `FormAuth` ini akan Menggunakan hook `useAuth` untuk menangani submit form, error handling, dan menampilkan loading spinner.
+
+   ```tsx
+   // src/components/FormAut.tsx
+
+   import { Link } from 'react-router-dom';
+   import FormInput from './form/FormInput';
+   import useAuth from '../hooks/useAuth';
+   import LoadingSpinner from './LoadingSpinner';
+   import ErrorMessage from './ErrorMessage';
+
+   const FormAuth = ({ isRegister }: { isRegister: boolean }) => {
+     const { handleSubmit, errors, isLoading, formData, handleChange } =
+       useAuth(isRegister);
+
+     return (
+       <div className="grid h-screen place-items-center">
+         <form
+           className="flex flex-col p-8 shadow-lg card w-96 bg-base-300 gap-y-4"
+           onSubmit={(event) => handleSubmit(event, formData)}
+         >
+           <h4 className="text-3xl font-bold text-center">
+             {isRegister ? 'Register' : 'Login'}
+           </h4>
+           {isRegister && (
+             <FormInput
+               type="text"
+               name="name"
+               label="name"
+               value={formData.name}
+               onChange={handleChange}
+               error={errors.name}
+             />
+           )}
+           <FormInput
+             type="email"
+             name="email"
+             label="email"
+             value={formData.email}
+             onChange={handleChange}
+             error={errors.email}
+           />
+           <FormInput
+             type="password"
+             name="password"
+             label="password"
+             value={formData.password}
+             onChange={handleChange}
+             error={errors.password}
+           />
+
+           {isLoading ? (
+             <LoadingSpinner />
+           ) : (
+             <div className="mt-4">
+               <button className="btn btn-primary btn-block">
+                 {isRegister ? 'Register' : 'Login'}
+               </button>
+             </div>
+           )}
+
+           {errors.apiError && <ErrorMessage message={errors.apiError} />}
+
+           {isRegister ? (
+             <p className="text-center">
+               Sudah punya akun?{' '}
+               <Link to={'/login'} className="ml-2 link link-hover link-accent">
+                 Login
+               </Link>
+             </p>
+           ) : (
+             <p className="text-center">
+               Belum punya akun?{' '}
+               <Link
+                 to={'/register'}
+                 className="ml-2 link link-hover link-accent"
+               >
+                 Register
+               </Link>
+             </p>
+           )}
+         </form>
+       </div>
+     );
+   };
+
+   export default FormAuth;
+   ```
