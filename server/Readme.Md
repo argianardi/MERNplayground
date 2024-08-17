@@ -340,6 +340,8 @@ Agar lebih efisien, kita dapat menggunakan async handler untuk menangani async f
 
 ## Fitur Register Menggunakan JWT
 
+### Register Menggunakan Cookies
+
 Untuk membuat fitur login menggunakan jwt kita perlu install [jwt](https://www.npmjs.com/package/jsonwebtoken), [bcryptjs](https://www.npmjs.com/package/bcryptjs), [validator](https://www.npmjs.com/package/validator) dan [cookie parser](https://www.npmjs.com/package/cookie-parser) [ref](https://www.youtube.com/watch?v=GyxcNTF7sbQ&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=22):
 
 - Jsonwebtoken (JWT)
@@ -358,6 +360,7 @@ Untuk membuat fitur login menggunakan jwt kita perlu install [jwt](https://www.n
   - Ini mempermudah pengelolaan cookie di server, memungkinkan kita membaca dan menulis cookie dengan mudah.
 
 Berikut langkah - langkah untuk membuat fitru register menggunakan jwt [ref](https://www.youtube.com/watch?v=GyxcNTF7sbQ&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=22):
+<a id="buat-user-model"/>
 
 1. Buat User Model <br>
    Pertama, kita perlu memperbarui model user untuk menambahkan validasi, enkripsi/hashing password, dan role user.
@@ -406,7 +409,21 @@ Berikut langkah - langkah untuk membuat fitru register menggunakan jwt [ref](htt
    export default User;
    ```
 
-2. Buat Controller untuk Registrasi User <br/>
+   <a id="tambahkan-variabel-jwt"/>
+
+2. Tambahkan variabel `JWT_SECRET` dan `NODE_ENV` di file `.env`
+
+   ```js
+   // .env
+
+   PORT = 3001;
+   NODE_ENV = development;
+   JWT_SECRET = sz4vjs65nqw3e0so23v242iumpzkpb;
+   ```
+
+    <a id="buat-register-controller"/>
+
+3. Buat Controller untuk Registrasi User <br/>
    Selanjutnya, kita buat controller yang akan menangani logika registrasi user dan menghasilkan JWT.
 
    ```js
@@ -428,7 +445,6 @@ Berikut langkah - langkah untuk membuat fitru register menggunakan jwt [ref](htt
      const isDev = process.env.NODE_ENV === 'development' ? false : true;
      const cookieOption = {
        expire: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
-       httpOnly: true,
        security: isDev,
      };
 
@@ -468,16 +484,7 @@ Berikut langkah - langkah untuk membuat fitru register menggunakan jwt [ref](htt
    - Menghasilkan token JWT untuk user baru.
    - Menyimpan token di cookie.
    - Mengirim respon ke client dengan data user (tanpa password) dan pesan sukses.
-
-3. Tambahkan variabel `JWT_SECRET` dan `NODE_ENV` di file `.env`
-
-   ```js
-   // .env
-
-   PORT = 3001;
-   NODE_ENV = development;
-   JWT_SECRET = sz4vjs65nqw3e0so23v242iumpzkpb;
-   ```
+     <a id="buat-register-router"/>
 
 4. Buat Router untuk Registrasi <br/>
    Kemudian, buat router untuk menangani rute registrasi user menggunakan auth controller tadi.
@@ -512,6 +519,8 @@ Berikut langkah - langkah untuk membuat fitru register menggunakan jwt [ref](htt
 
    export default router;
    ```
+
+   <a id="tambahkan-middlewar-cookie"/>
 
 5. Tambahkan middleware cookie parser di fil entry point kita
 
@@ -556,6 +565,152 @@ Berikut langkah - langkah untuk membuat fitru register menggunakan jwt [ref](htt
      console.log(`Server running on port http://localhost:${PORT}`);
    });
    ```
+
+### Register Tanpa Menggunakan Cookies
+
+Untuk membuat fitur register tanpa menggunakan cookies, langkah-langkahnya hampir sama dengan membuat fitur [register menggunakan cookies](#register-menggunakan-cookies). Kita hanya perlu melakukan modifikasi bagian controller mengubah cara pengiriman token JWT ke klien, alih-alih menyimpan token di cookies kita bisa mengirim token langsung di respon JSON. Berikut langkah -langkahnya:
+
+1. Buat User Model, sama seperti di fitur [register dengan cookies](#buat-user-model)
+2. Tambahkan variabel `JWT_SECRET` dan `NODE_ENV` di file `.env` sama seperti di fitur [register dengan cookies](#tambahkan-variabel-jwt)
+3. Modifikasi Controller [register dengan cookies](#buat-register-controller) jadi seperti ini: <br/>
+   Modifikasi Fungsi createSendResToken logika penyimpanan token di cookie dan kirim token secara langsung sebagai bagian dari respons JSON.
+
+   ```ts
+   import jwt from 'jsonwebtoken';
+   import asyncHandler from '../middlewares/asyncHandler.js';
+   import User from '../models/userModel.js';
+
+   // To create token
+   const signToken = (id) => {
+     return jwt.sign({ id }, process.env.JWT_SECRET, {
+       expiresIn: '6d',
+     });
+   };
+
+   // Create and send token use in cookie
+   const createSendResToken = (user, statusCode, res) => {
+     const token = signToken(user._id);
+     const isDev = process.env.NODE_ENV === 'development' ? false : true;
+     const cookieOption = {
+       expire: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
+       security: isDev,
+     };
+
+     res.cookie('jwt', token, cookieOption);
+
+     user.password = undefined;
+
+     res.status(statusCode).json({
+       code: statusCode.toString(),
+       status: 'Success',
+       message: 'User created successfully',
+       data: user,
+     });
+   };
+
+   //----------------------------------------------------------------------------------------------------
+   // Create and send token to json response
+   const createSendResTokenJson = (user, statusCode, res) => {
+     const token = signToken(user?._id);
+
+     // Delete password from user before send it to client
+     user.password = undefined;
+
+     res?.status(statusCode).json({
+       code: statusCode.toString(),
+       status: 'Success',
+       message: 'User created successfully',
+       data: {
+         user,
+         token,
+       },
+     });
+   };
+   //----------------------------------------------------------------------------------------------------
+
+   // Register with cookie
+   export const registerUser = asyncHandler(async (req, res) => {
+     const isOwner = (await User.countDocuments()) === 0;
+     const role = isOwner ? 'owner' : 'user';
+
+     const createUser = await User.create({
+       name: req.body.name,
+       email: req.body.email,
+       password: req.body.password,
+       role: role,
+     });
+
+     createSendResToken(createUser, 201, res);
+   });
+
+   //----------------------------------------------------------------------------------------------------
+   // Register without cookie
+   export const registerUserJson = asyncHandler(async (req, res) => {
+     const isOwner = (await User?.countDocuments()) === 0;
+     const role = isOwner ? 'owner' : 'user';
+
+     const createUser = await User?.create({
+       name: req?.body?.name,
+       email: req?.body?.email,
+       password: req?.body?.password,
+       role: role,
+     });
+
+     createSendResTokenJson(createUser, 201, res);
+   });
+   //----------------------------------------------------------------------------------------------------
+
+   export const loginUser = asyncHandler(async (req, res) => {
+     // Email validation
+     if (!req.body.email) {
+       res.status(400);
+       throw new Error('Please add an email');
+     }
+
+     // Password validation
+     if (!req.body.password) {
+       res.status(400);
+       throw new Error('Please add a password');
+     }
+
+     const userData = await User.findOne({ email: req.body.email });
+
+     if (userData && (await userData.comparePassword(req.body.password))) {
+       createSendResToken(userData, 200, res);
+     } else {
+       res.status(400);
+       throw new Error('Invalid credentials');
+     }
+   });
+
+   export const getCurrentUser = asyncHandler(async (req, res) => {
+     const user = await User.findById(req.user._id).select('-password');
+
+     if (user) {
+       return res.status(200).json({
+         code: '200',
+         status: 'Success',
+         message: 'Request was successful.',
+         data: user,
+       });
+     } else {
+       res.status(404);
+       throw new Error('User not found');
+     }
+   });
+
+   export const logoutUser = async (req, res) => {
+     res.cookie('jwt', '', {
+       expires: new Date(Date.now()),
+     });
+
+     res.status(200).json({
+       message: 'Logout Berhasil',
+     });
+   };
+   ```
+
+4. Buat Router untuk Register, sama seperti di fitur [register dengan cookies](#buat-register-router)
 
 ## Fitur Login Menggunakan JWT
 
@@ -614,7 +769,7 @@ Berikut langkah - langkahnya [ref](https://www.youtube.com/watch?v=ADLwHJButZ0&l
    export default User;
    ```
 
-2. Buat Kontroler Untuk Login <br/>
+2. Buat controller Untuk Login <br/>
    Kontroler ini akan mengurus proses login yaitu validation dan juga akan membuat token JWT serta mengirimkannya dalam cookie.
 
    ```js
@@ -635,7 +790,6 @@ Berikut langkah - langkahnya [ref](https://www.youtube.com/watch?v=ADLwHJButZ0&l
      const isDev = process.env.NODE_ENV === 'development' ? false : true;
      const cookieOption = {
        expire: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
-       httpOnly: true,
        security: isDev,
      };
 
@@ -741,7 +895,6 @@ Kita akan membahas cara melakukan proteksi endpoint, membuat fungsi logout, dan 
     const isDev = process.env.NODE_ENV === 'development' ? false : true;
     const cookieOption = {
       expire: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
-      httpOnly: true,
       security: isDev,
     };
 
@@ -813,7 +966,6 @@ Kita akan membahas cara melakukan proteksi endpoint, membuat fungsi logout, dan 
 
   export const logoutUser = async (req, res) => {
     res.cookie('jwt', '', {
-      httpOnly: true,
       expires: new Date(Date.now()),
     });
 
