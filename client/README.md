@@ -1,3 +1,43 @@
+## Key Word
+
+- <details open>
+    <summary><a href="#kumpulan-fitur">Kumpulan Fitur</a></summary>
+    <ul>
+      <li><a href="#mengubah-format-angka-menjadi-mata-uang-rupiah-menggunakan-intlnumberformat">Konversi Number ke Rupiah</a></li>
+    </ul>
+  </details>
+- [Manage Pages Menggunakan React Router Dom](#manage-pages-menggunakan-react-router-dom)
+- [Layoting Responsive halaman WEB (Header, Main dan Footer ) dengan DaisyUI](#layoting-responsive-halaman-web-header-main-dan-footer--dengan-daisyui)
+- [Buat Koneksi Antar BACKEND dan FRONTEND dengan VITE Menggunakan Concurrently](#buat-koneksi-antar-backend-dan-frontend-dengan-vite-menggunakan-concurrently)
+- [Mengatur API Calls dengan Axios](#mengatur-api-calls-dengan-axios)
+- [Form Filter untuk Produk Menggunakan React Router](#form-filter-untuk-produk-menggunakan-react-router)
+- [Manage pages Menggunakan React Router Dom](#manage-pages-menggunakan-react-router-dom)
+- <details open>
+      <summary><a href="#fitur-login-dan-register">Fitur Login dan Register</a></summary>
+      <ul>
+        <li><a href="#fitur-login-dan-register-tanpa-global-state">Fitur  Login dan Register Tanpa Global State</a></li>
+        <li><details open>
+          <ul>
+            <li><a href="#mengapa-tidak-menggunakan-usestate-untuk-input-form">Mengapa Tidak Menggunakan useState untuk Input Form?</a></li>
+            <li><a href="#mengelola-state-dan-validasi-form-untuk-fitur-login-dan-register-dengan-custom-hook">Mengelola State dan Validasi Form untuk Fitur Login dan Register dengan Custom Hook</a></li>
+          </ul>
+        </details></li>
+      </ul>
+    </details>
+  <!-- - <details open>
+      <summary><a href="#fitur-login-dan-register">Fitur Login dan Register</a></summary>
+      <ul>
+        <li><a href="#fitur-login-dan-register-tanpa-global-state">Fitur  Login dan Register Tanpa Global State</a></li>
+        <li><details open>
+          <summary><a href="#mengapa-tidak-menggunakan-usestate-untuk-input-form">Mengapa Tidak Menggunakan useState untuk Input Form?</a></summary>
+          <ul>
+            <li><a href="#usestate-untuk-object">useState Untuk Object</a></li>
+            <li><a href="#usestate-untuk-nesting-object">useState Untuk Nesting Object</a></li>
+          </ul>
+        </details></li>
+      </ul>
+    </details> -->
+
 ## Kumpulan Fitur
 
 ### Mengubah Format Angka Menjadi Mata Uang Rupiah Menggunakan Intl.NumberFormat
@@ -780,220 +820,345 @@ Untuk melanjutkan fitur login dan register di sisi frontend, kita perlu menambah
 
 Berikut beberapa langkah yang bisa kita lakukan:
 
-1. Atur Konfigurasi Server <br/>
-   Untuk menghubungkan ke server api dari backendkita perlu mengatur konfigurasi server dengan menggunakan properti server dalam objek konfigurasi Vite. Dalam contoh ini, kita akan mengarahkan request ke server api backend dengan menggunakan properti proxy.
+1.  Atur Konfigurasi Server <br/>
+    Untuk menghubungkan ke server api dari backendkita perlu mengatur konfigurasi server dengan menggunakan properti server dalam objek konfigurasi Vite. Dalam contoh ini, kita akan mengarahkan request ke server api backend dengan menggunakan properti proxy.
 
-   ```ts
-   import { defineConfig } from 'vite';
-   import react from '@vitejs/plugin-react-swc';
+    ```ts
+    import { defineConfig } from 'vite';
+    import react from '@vitejs/plugin-react-swc';
 
-   export default defineConfig({
-     plugins: [react()],
-     //--------------------------------------------------------
-     server: {
-       proxy: {
-         '/api': {
-           target: 'http://localhost:3002',
-           changeOrigin: true,
-         },
-       },
-     },
-     //--------------------------------------------------------
-   });
-   ```
+    export default defineConfig({
+      plugins: [react()],
+      //--------------------------------------------------------
+      server: {
+        proxy: {
+          '/api': {
+            target: 'http://localhost:3002',
+            changeOrigin: true,
+          },
+        },
+      },
+      //--------------------------------------------------------
+    });
+    ```
 
-2. Buat Custom API untuk mendaftarkan base url API Backend <br/>
+2.  Buat Custom API untuk mendaftarkan base url API Backend <br/>
 
-   ```ts
-   // src/services/index.ts
+    ```ts
+    // src/services/index.ts
 
-   import axios from 'axios';
+    import axios from 'axios';
 
-   const customAPI = axios.create({
-     baseURL: '/api/v1',
-     withCredentials: true, // Mengizinkan pengiriman cookies bersama permintaan
-   });
+    const customAPI = axios.create({
+      baseURL: '/api/v1',
+      withCredentials: true, // Mengizinkan pengiriman cookies bersama permintaan
+    });
 
-   export default customAPI;
-   ```
+    export default customAPI;
+    ```
 
-   `withCredentials: true` di customAPI diata:
+    `withCredentials: true` di customAPI diata:
 
-   - Opsi ini memberitahu axios untuk menyertakan cookies dalam permintaan yang dikirimkan ke server, bahkan jika permintaan tersebut lintas domain.
-   - Ini penting jika server Anda mengandalkan cookies untuk autentikasi (seperti JWT dalam cookie) karena tanpa `withCredentials: true`, cookies tidak akan disertakan dan server tidak akan mengenali permintaan sebagai autentik.
+    - Opsi ini memberitahu axios untuk menyertakan cookies dalam permintaan yang dikirimkan ke server, bahkan jika permintaan tersebut lintas domain.
+    - Ini penting jika server Anda mengandalkan cookies untuk autentikasi (seperti JWT dalam cookie) karena tanpa `withCredentials: true`, cookies tidak akan disertakan dan server tidak akan mengenali permintaan sebagai autentik.
 
-3. Buat auth service <br/>
-   Buat service auth yang berisi method untuk melakukan fethc api untuk fitur login dan register.
+3.  Buat auth service <br/>
+    Buat service auth yang berisi method untuk melakukan fethc api untuk fitur login dan register.
 
-   ```ts
-   // src/services/authService.ts
+    ```ts
+    // src/services/authService.ts
 
-   import customAPI from '.';
+    import customAPI from '.';
 
-   const authService = async (url: string, data: Record<string, any>) => {
-     console.log(data);
+    const authService = async (url: string, data: Record<string, any>) => {
+      console.log(data);
 
-     try {
-       const response = await customAPI.post(url, data);
-       console.log(response);
+      try {
+        const response = await customAPI.post(url, data);
+        console.log(response);
 
-       return response.data.data;
-     } catch (error: any) {
-       if (error.response) {
-         throw new Error(
-           error?.response.data.message || 'Something went wrong'
-         );
-       } else {
-         throw new Error('Network error');
-       }
-     }
-   };
+        return response.data.data;
+      } catch (error: any) {
+        if (error.response) {
+          throw new Error(
+            error?.response.data.message || 'Something went wrong'
+          );
+        } else {
+          throw new Error('Network error');
+        }
+      }
+    };
 
-   export default authService;
-   ```
+    export default authService;
+    ```
 
-4. Buat custom hook bernama `useAuth `untuk Login dan Register <br/>
-   Hook ini digunakan untuk menghandle proses autentikasi dan registrasi user. `useAuth `ini bertugas untuk mengelola state untuk loading, error, dan logika submit form.
+4.  Buat custom hook bernama `useAuth `untuk Login dan Register <br/>
+    Hook ini digunakan untuk menghandle proses autentikasi dan registrasi user. `useAuth `ini bertugas untuk mengelola state untuk loading, error, dan logika submit form.
 
-   ```ts
-   // src/hooks/useAuth.ts
+    ```ts
+    // src/hooks/useAuth.ts
 
-   import { FormEvent, useState } from 'react';
-   import { useNavigate } from 'react-router-dom';
-   import authService from '../services/authService';
+    import { FormEvent, useState } from 'react';
+    import { useNavigate } from 'react-router-dom';
+    import authService from '../services/authService';
 
-   const useAuth = (isRegister: boolean) => {
-     const [error, setError] = useState<string | null>(null);
-     const [isLoading, setIsLoading] = useState<boolean>(false);
-     const navigate = useNavigate();
+    const useAuth = (isRegister: boolean) => {
+      const [error, setError] = useState<string | null>(null);
+      const [isLoading, setIsLoading] = useState<boolean>(false);
+      const navigate = useNavigate();
 
-     const handleSubmit = async (event: FormEvent) => {
-       event.preventDefault();
-       setIsLoading(true);
-       setError(null);
+      const handleSubmit = async (event: FormEvent) => {
+        event.preventDefault();
+        setIsLoading(true);
+        setError(null);
 
-       const formData = new FormData(event.target as HTMLFormElement);
-       const data = Object.fromEntries(formData.entries());
-       console.log(data);
+        const formData = new FormData(event.target as HTMLFormElement);
+        const data = Object.fromEntries(formData.entries());
+        console.log(data);
 
-       const url = isRegister ? '/auth/register' : '/auth/login';
+        const url = isRegister ? '/auth/register' : '/auth/login';
 
-       try {
-         const response = await authService(url, data);
+        try {
+          const response = await authService(url, data);
 
-         if (isRegister) {
-           navigate('/login');
-         } else {
-           navigate('/');
-         }
-       } catch (error: any) {
-         setError(error?.message);
-       } finally {
-         setIsLoading(false);
-       }
-     };
+          if (isRegister) {
+            navigate('/login');
+          } else {
+            navigate('/');
+          }
+        } catch (error: any) {
+          setError(error?.message);
+        } finally {
+          setIsLoading(false);
+        }
+      };
 
-     return { handleSubmit, error, isLoading };
-   };
+      return { handleSubmit, error, isLoading };
+    };
 
-   export default useAuth;
-   ```
+    export default useAuth;
+    ```
 
-5. Buat Komponen `FormAuth` <br/>
-   `FormAuth` ini akan Menggunakan hook `useAuth` untuk menangani submit form, error handling, dan menampilkan loading spinner.
+5.  Buat Komponen `FormAuth` <br/>
+    `FormAuth` ini akan Menggunakan hook `useAuth` untuk menangani submit form, error handling, dan menampilkan loading spinner.
 
-   ```tsx
-   // src/components/FormAuth.tsx
+    ```tsx
+    // src/components/FormAuth.tsx
 
-   import { Link } from 'react-router-dom';
-   import FormInput from './form/FormInput';
-   import useAuth from '../hooks/useAuth';
-   import LoadingSpinner from './LoadingSpinner';
-   import ErrorMessage from './ErrorMessage';
+    import { Link } from 'react-router-dom';
+    import FormInput from './form/FormInput';
+    import useAuth from '../hooks/useAuth';
+    import LoadingSpinner from './LoadingSpinner';
+    import ErrorMessage from './ErrorMessage';
 
-   const FormAuth = ({ isRegister }: { isRegister: boolean }) => {
-     const { handleSubmit, error, isLoading } = useAuth(isRegister);
+    const FormAuth = ({ isRegister }: { isRegister: boolean }) => {
+      const { handleSubmit, error, isLoading } = useAuth(isRegister);
 
-     return (
-       <div className="grid h-screen place-items-center">
-         <form
-           className="flex flex-col p-8 shadow-lg card w-96 bg-base-300 gap-y-4"
-           onSubmit={handleSubmit}
-         >
-           <h4 className="text-3xl font-bold text-center">
-             {isRegister ? 'Register' : 'Login'}
-           </h4>
-           {isRegister && <FormInput type="text" name="name" label="name" />}
-           <FormInput type="email" name="email" label="email" />
-           <FormInput type="password" name="password" label="password" />
-           {isLoading ? (
-             <LoadingSpinner />
-           ) : (
-             <div className="mt-4">
-               <button className="btn btn-primary btn-block">
-                 {isRegister ? 'Register' : 'Login'}
-               </button>
-             </div>
-           )}
+      return (
+        <div className="grid h-screen place-items-center">
+          <form
+            className="flex flex-col p-8 shadow-lg card w-96 bg-base-300 gap-y-4"
+            onSubmit={handleSubmit}
+          >
+            <h4 className="text-3xl font-bold text-center">
+              {isRegister ? 'Register' : 'Login'}
+            </h4>
+            {isRegister && <FormInput type="text" name="name" label="name" />}
+            <FormInput type="email" name="email" label="email" />
+            <FormInput type="password" name="password" label="password" />
+            {isLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <div className="mt-4">
+                <button className="btn btn-primary btn-block">
+                  {isRegister ? 'Register' : 'Login'}
+                </button>
+              </div>
+            )}
 
-           {error && <ErrorMessage message={error} />}
+            {error && <ErrorMessage message={error} />}
 
-           {isRegister ? (
-             <p className="text-center">
-               Sudah punya akun?{' '}
-               <Link to={'/login'} className="ml-2 link link-hover link-accent">
-                 Login
-               </Link>
-             </p>
-           ) : (
-             <p className="text-center">
-               Belum punya akun?{' '}
-               <Link
-                 to={'/register'}
-                 className="ml-2 link link-hover link-accent"
-               >
-                 Register
-               </Link>
-             </p>
-           )}
-         </form>
-       </div>
-     );
-   };
+            {isRegister ? (
+              <p className="text-center">
+                Sudah punya akun?{' '}
+                <Link
+                  to={'/login'}
+                  className="ml-2 link link-hover link-accent"
+                >
+                  Login
+                </Link>
+              </p>
+            ) : (
+              <p className="text-center">
+                Belum punya akun?{' '}
+                <Link
+                  to={'/register'}
+                  className="ml-2 link link-hover link-accent"
+                >
+                  Register
+                </Link>
+              </p>
+            )}
+          </form>
+        </div>
+      );
+    };
 
-   export default FormAuth;
-   ```
+    export default FormAuth;
+    ```
 
-   Berikut komponen `FormInput` yang digunakan di komponen `FormAuth` diatas
+    Berikut komponen `FormInput` yang digunakan di komponen `FormAuth` diatas
 
-   ```tsx
-   // src/components/form/FormInput
+    ```tsx
+    // src/components/form/FormInput
 
-   interface FormInputType {
-     defaultValue?: string;
-     label: string;
-     type: string;
-     name: string;
-   }
+    interface FormInputType {
+      defaultValue?: string;
+      label: string;
+      type: string;
+      name: string;
+    }
 
-   const FormInput = ({ label, name, type, defaultValue }: FormInputType) => {
-     return (
-       <label className="form-control">
-         <label className="label">
-           <span className="capitalize label-text">{label}</span>
-         </label>
-         <input
-           type={type}
-           name={name}
-           defaultValue={defaultValue}
-           className="input input-bordered"
-         />
-       </label>
-     );
-   };
+    const FormInput = ({ label, name, type, defaultValue }: FormInputType) => {
+      return (
+        <label className="form-control">
+          <label className="label">
+            <span className="capitalize label-text">{label}</span>
+          </label>
+          <input
+            type={type}
+            name={name}
+            defaultValue={defaultValue}
+            className="input input-bordered"
+          />
+        </label>
+      );
+    };
 
-   export default FormInput;
-   ```
+    export default FormInput;
+    ```
+
+6.  Membuat Auth Protected<br/>
+
+    Ini merupakan cara untuk melindungi page di mana hanya user yang sudah login saja yang bisa mengakses page tersebut. Kita bisa menggunakan beberapa pendekatan tergantung pada bagaimana kita mengelola autentikasi. Salah satu cara yang umum adalah dengan menggunakan React Router dan membuat komponen ProtectedRoute yang akan memeriksa apakah user sudah login sebelum mengizinkan akses ke halaman tertentu.
+
+    Berikut adalah contoh implementasi untuk melindungi halaman CartView:
+
+    1.  Buat Komponen ProtectedRoute<br/>
+        Komponen ini akan memeriksa apakah user sudah login. Jika belum, user akan diarahkan ke halaman login. Komponen ini memeriksa apakah user sudah login dengan memeriksa keberadaan token JWT di dalam cookie. Jika tidak ada token, user akan diarahkan ke halaman login.
+
+        ```tsx
+        // src/components/ProtectedRoute.tsx
+
+        import { ReactNode } from 'react';
+        import Cookies from 'js-cookie';
+        import { Navigate } from 'react-router-dom';
+
+        const ProtectedRoute = ({ children }: { children: ReactNode }) => {
+          const isAuthenticated = !!Cookies.get('jwt');
+
+          if (!isAuthenticated) {
+            return <Navigate to={'/login'} />;
+          }
+
+          return <>{children}</>;
+        };
+
+        export default ProtectedRoute;
+        ```
+
+    2.  Gunakan ProtectedRoute di App atau Routes <br/>
+        Kemudian, gunakan ProtectedRoute di dalam konfigurasi React Router untuk membungkus halaman yang ingin dilindungi, seperti CartView. ProtectedRoute digunakan untuk membungkus komponen CartView. Jadi, jika user mencoba mengakses halaman CartView tanpa login, mereka akan otomatis diarahkan ke halaman login.
+
+        ```tsx
+        // src/App.tsx
+
+        import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
+        // Components
+        import PublicLayout from './layouts/PublicLayout';
+        import HomeView from './pages/HomeView';
+        import ProductView from './pages/ProductView';
+        import OrderView from './pages/OrderView';
+        import CartView from './pages/CartView';
+        import AboutView from './pages/AboutView';
+        import LoginView from './pages/auth/LoginView';
+        import Register from './pages/auth/Register';
+        import DetailProduct from './pages/DetailProduct';
+
+        // Loader
+        import { HomeLoader } from './pages/HomeView';
+        import { ProductViewLoader } from './pages/ProductView';
+        import ProtectedRoute from './components/ProtectedRoute';
+
+        const router = createBrowserRouter([
+          {
+            path: '/',
+            element: <PublicLayout />,
+            children: [
+              {
+                index: true,
+                element: <HomeView />,
+                loader: HomeLoader,
+              },
+              {
+                path: 'products',
+                element: <ProductView />,
+                loader: ProductViewLoader,
+              },
+              {
+                path: 'products/:id',
+                element: <DetailProduct />,
+              },
+              {
+                path: 'orders',
+                element: <OrderView />,
+              },
+              {
+                path: 'cart',
+                //---------------------------------------------------------------------------------------------
+                element: (
+                  <ProtectedRoute>
+                    <CartView />
+                  </ProtectedRoute>
+                ),
+                //---------------------------------------------------------------------------------------------
+              },
+              {
+                path: 'about',
+                element: <AboutView />,
+              },
+            ],
+          },
+          {
+            path: '/login',
+            element: <LoginView />,
+          },
+          {
+            path: 'register',
+            element: <Register />,
+          },
+        ]);
+
+        function App() {
+          return <RouterProvider router={router} />;
+        }
+
+        export default App;
+        ```
+
+        Dengan pendekatan ini, hanya user yang sudah login dan memiliki cookie JWT yang valid yang bisa mengakses halaman CartView. Jika user tidak login, mereka akan diarahkan ke halaman LoginView.
+
+        Untuk menentukan status autentikasi kita bisa menentukan isAuthenticated dari beberapa tempat, seperti:
+
+        - State Global: Jika Kita menggunakan Redux, Context API, atau tools lain untuk mengelola state.
+        - Cookies: Jika JWT disimpan di dalam cookies, Kita bisa memeriksa keberadaan cookie yang berisi token. untuk bisa menggunaka cookies kita harus menginstalnya dulu, dengan command `npm install js-cookie`
+          Berikut contoh menggunakan cookie untuk memeriksa autentikasi:
+
+          ```ts
+          import Cookies from 'js-cookie';
+          const isAuthenticated = !!Cookies.get('jwt');
+          ```
 
 #### Mengapa Tidak Menggunakan useState untuk Input Form?
 
@@ -1016,7 +1181,7 @@ Alasan mengapa fitur login dan register pada komponen `FormAuth` tidak menggunak
    - Penggunaan di luar form submission<br/>
      Jika nilai dari input digunakan di tempat lain dalam komponen atau harus diperbarui secara dinamis sebelum submit, Anda mungkin ingin mengelola nilai input dengan state.
 
-#### Mengelola State dan Validasi Form untuk Fitur Login dan Register dengan Custom Hook
+#### Mengelola State dan Validasi Form Auth untuk Fitur Login dan Register dengan Custom Hook
 
 Kita bisa mengelola state untuk name, email, dan password dengan menggunakan custom hook yang mengelola state dan validasi secara terpisah. Berikut adalah contoh penerapan tersebut:
 
