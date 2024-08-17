@@ -14,6 +14,7 @@ import DetailProduct from './pages/DetailProduct';
 // Loader
 import { HomeLoader } from './pages/HomeView';
 import { ProductViewLoader } from './pages/ProductView';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const router = createBrowserRouter([
   {
@@ -40,7 +41,11 @@ const router = createBrowserRouter([
       },
       {
         path: 'cart',
-        element: <CartView />,
+        element: (
+          <ProtectedRoute>
+            <CartView />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'about',
