@@ -1,18 +1,37 @@
 import { Link } from 'react-router-dom';
+import Cookies from 'js-cookie';
+import useAuth from '../hooks/useAuth';
 
 const Header = () => {
+  const isAuthenticated = !!Cookies.get('jwt');
+  const { logout } = useAuth(false);
+
   return (
-    <header className="bg-neutral py-2 text-neutral-content">
-      <div className="mx-auto max-w-6xl px-8 flex justify-center sm:justify-end">
-        <div className="flex gap-x-6 justify-center items-center">
-          <Link to={'/login'} className="link link-hover text-xs sm:text-sm">
-            Sign In
-          </Link>
-          <Link to={'/register'} className="link link-hover text-xs sm:text-sm">
-            Create Account
-          </Link>
+    <header className="py-2 bg-neutral text-neutral-content">
+      {isAuthenticated ? (
+        <div className="flex justify-end max-w-6xl px-8 mx-auto border sm:justify-end">
+          <button
+            className="text-xs link link-hover sm:text-sm"
+            onClick={logout}
+          >
+            Logout
+          </button>
         </div>
-      </div>
+      ) : (
+        <div className="flex justify-center max-w-6xl px-8 mx-auto border sm:justify-end">
+          <div className="flex items-center justify-center gap-x-6">
+            <Link to={'/login'} className="text-xs link link-hover sm:text-sm">
+              Sign In
+            </Link>
+            <Link
+              to={'/register'}
+              className="text-xs link link-hover sm:text-sm"
+            >
+              Create Account
+            </Link>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
