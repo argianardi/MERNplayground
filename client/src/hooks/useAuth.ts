@@ -1,6 +1,6 @@
 import { ChangeEvent, FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import authService from '../services/authService';
+import { authService } from '../services/authService';
 
 // Tanpa state management dan validasi
 // const useAuth = (isRegister: boolean) => {
@@ -43,10 +43,11 @@ import authService from '../services/authService';
 // Menggunaakan state management dan validasi
 interface useAuthReturnType {
   handleSubmit: (Event: FormEvent, fields: FormDataType) => void;
+  handleChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  logout: () => void;
   errors: ErrorsType;
   isLoading: boolean;
   formData: FormDataType;
-  handleChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }
 
 interface FormDataType {
@@ -138,12 +139,22 @@ const useAuth = (isRegister: boolean): useAuthReturnType => {
     }
   };
 
+  const logout = async () => {
+    try {
+      await authService('/auth/logout', {});
+      navigate('/login');
+    } catch (error: any) {
+      setErrors({ ...errors, apiError: error.message });
+    }
+  };
+
   return {
     handleSubmit,
+    logout,
+    handleChange,
     errors,
     isLoading,
     formData,
-    handleChange,
   };
 };
 
