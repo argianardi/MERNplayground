@@ -1,6 +1,6 @@
 import customAPI from '.';
 
-const authService = async (url: string, data: Record<string, any>) => {
+export const authService = async (url: string, data: Record<string, any>) => {
   console.log(data);
 
   try {
@@ -17,4 +17,14 @@ const authService = async (url: string, data: Record<string, any>) => {
   }
 };
 
-export default authService;
+export const logout = async () => {
+  try {
+    await customAPI.post('/auth/logout');
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(error?.response.data.message || 'Something went wrong');
+    } else {
+      throw new Error('Network error');
+    }
+  }
+};
