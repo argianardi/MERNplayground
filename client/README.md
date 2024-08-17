@@ -1447,3 +1447,244 @@ Kita bisa mengelola state untuk name, email, dan password dengan menggunakan cus
 
    export default FormAuth;
    ```
+
+## Logout
+
+### Logout dengan Menghapus Cookies
+
+Untuk menambahkan fitur logout, kita perlu memastikan bahwa token autentikasi yang disimpan di frontend (biasanya di localStorage atau sessionStorage) dihapus ketika user melakukan logout. Kita juga harus mengarahkan user kembali ke halaman login atau halaman lain setelah logout. Berikut adalah langkah-langkah dan contoh implementasinya:
+
+1. Buat Fungsi Logout di authService <br/>
+   Fungsi logout ini akan memanggil [API logout di backend](https://github.com/argianardi/MERNplayground/tree/learn/server#proteksi-endpoint-logout-dan-get-user), yang akan menghapus cookie JWT di server dan mengarahkan pengguna ke halaman login.
+
+   ```ts
+   // src/services/authService.ts
+
+   import customAPI from '.';
+
+   export const authService = async (
+     url: string,
+     data: Record<string, any>
+   ) => {
+     console.log(data);
+
+     try {
+       const response = await customAPI.post(url, data);
+       console.log(response);
+
+       return response.data.data;
+     } catch (error: any) {
+       if (error.response) {
+         throw new Error(
+           error?.response.data.message || 'Something went wrong'
+         );
+       } else {
+         throw new Error('Network error');
+       }
+     }
+   };
+
+   //------------------------------------------------------------------------------------------
+   export const logout = async () => {
+     try {
+       await customAPI.post('/auth/logout');
+     } catch (error: any) {
+       if (error.response) {
+         throw new Error(
+           error?.response.data.message || 'Something went wrong'
+         );
+       } else {
+         throw new Error('Network error');
+       }
+     }
+   };
+   //------------------------------------------------------------------------------------------
+   ```
+
+2. Buat Fungsi logout di Hook useAuth<br/>
+   Tambahkan fungsi logout ke dalam custom hook useAuth untuk menangani proses logout.
+
+   ```ts
+   // src/hooks/useAuth.ts
+
+   import { ChangeEvent, FormEvent, useState } from 'react';
+   import { useNavigate } from 'react-router-dom';
+   import { authService } from '../services/authService';
+
+   interface useAuthReturnType {
+     handleSubmit: (Event: FormEvent, fields: FormDataType) => void;
+     handleChange: (event: ChangeEvent<HTMLInputElement>) => void;
+     logout: () => void;
+     errors: ErrorsType;
+     isLoading: boolean;
+     formData: FormDataType;
+   }
+
+   interface FormDataType {
+     name: string;
+     email: string;
+     password: string;
+   }
+
+   interface ErrorsType {
+     name?: string;
+     email?: string;
+     password?: string;
+     apiError?: string;
+   }
+
+   const useAuth = (isRegister: boolean): useAuthReturnType => {
+     const [formData, setFormData] = useState<FormDataType>({
+       name: '',
+       email: '',
+       password: '',
+     });
+     const [errors, setErrors] = useState<ErrorsType>({});
+     const [isLoading, setIsLoading] = useState<boolean>(false);
+     const navigate = useNavigate();
+
+     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+       const { name, value } = event.target;
+
+       setFormData((prevData) => ({
+         ...prevData,
+         [name]: value,
+       }));
+
+       // Clear the error for the field that is being modified
+       setErrors((prevErrors) => ({ ...prevErrors, [name]: '' }));
+     };
+
+     const validateForm = (): boolean => {
+       const { name, email, password } = formData;
+       const newErrors: ErrorsType = {};
+
+       if (isRegister && !name) {
+         newErrors.name = 'Name is required';
+       } else if (name.length < 3 && isRegister) {
+         newErrors.name = 'Name must be at least 3 characters long.';
+       }
+
+       if (!email) {
+         newErrors.email = 'Email is required.';
+       } else if (!/\S+@\S+\.\S+/.test(email)) {
+         newErrors.email = 'Invalid email address.';
+       }
+       if (!password) {
+         newErrors.password = 'Password is required';
+       } else if (password.length < 3) {
+         newErrors.password = 'Password must be at least 3 characters long.';
+       }
+       setErrors(newErrors);
+
+       // If there are no errors, return true, otherwise false
+       return Object.keys(newErrors).length === 0;
+     };
+
+     const handleSubmit = async (event: FormEvent, fields: FormDataType) => {
+       event.preventDefault();
+       setIsLoading(true);
+       setErrors({});
+
+       const isValid = validateForm();
+
+       if (!isValid) {
+         setIsLoading(false);
+         return;
+       }
+
+       try {
+         const url = isRegister ? '/auth/register' : '/auth/login';
+         await authService(url, fields);
+
+         if (isRegister) {
+           navigate('/login');
+         } else {
+           navigate('/');
+         }
+       } catch (error: any) {
+         setErrors({ ...errors, apiError: error.message });
+       } finally {
+         setIsLoading(false);
+       }
+     };
+
+     //-----------------------------------------------------------------------------------------------------
+     const logout = async () => {
+       try {
+         await authService('/auth/logout', {});
+         navigate('/login');
+       } catch (error: any) {
+         setErrors({ ...errors, apiError: error.message });
+       }
+     };
+     //-----------------------------------------------------------------------------------------------------
+
+     return {
+       handleSubmit,
+       //-----------------------------------------------------------------------------------------------------
+       logout,
+       handleChange,
+       //-----------------------------------------------------------------------------------------------------
+       errors,
+       isLoading,
+       formData,
+     };
+   };
+
+   export default useAuth;
+   ```
+
+3. Gunakan Fungsi logout di Komponen <br/>
+   Di komponen yang memerlukan fitur logout, gunakan fungsi logout yang didaftarkan di Hook useLogout tadi untuk menangani logout.
+
+   ```tsx
+   // src/components/Header.tsx
+
+   import { Link } from 'react-router-dom';
+   import Cookies from 'js-cookie';
+   import useAuth from '../hooks/useAuth';
+
+   const Header = () => {
+     //------------------------------------------------------------------------------------------------
+     const isAuthenticated = !!Cookies.get('jwt');
+     const { logout } = useAuth(false);
+     //------------------------------------------------------------------------------------------------
+
+     return (
+       <header className="py-2 bg-neutral text-neutral-content">
+         {isAuthenticated ? (
+           <div className="flex justify-end max-w-6xl px-8 mx-auto border sm:justify-end">
+             //------------------------------------------------------------------------------------------------
+             <button
+               className="text-xs link link-hover sm:text-sm"
+               onClick={logout}
+             >
+               Logout
+             </button>
+             //------------------------------------------------------------------------------------------------
+           </div>
+         ) : (
+           <div className="flex justify-center max-w-6xl px-8 mx-auto border sm:justify-end">
+             <div className="flex items-center justify-center gap-x-6">
+               <Link
+                 to={'/login'}
+                 className="text-xs link link-hover sm:text-sm"
+               >
+                 Sign In
+               </Link>
+               <Link
+                 to={'/register'}
+                 className="text-xs link link-hover sm:text-sm"
+               >
+                 Create Account
+               </Link>
+             </div>
+           </div>
+         )}
+       </header>
+     );
+   };
+
+   export default Header;
+   ```
