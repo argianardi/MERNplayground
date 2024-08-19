@@ -64,7 +64,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 });
 
 // Register without cookie
-export const registerUserJson = asyncHandler(async (req, res) => {
+export const registerUserWithoutCookie = asyncHandler(async (req, res) => {
   const isOwner = (await User?.countDocuments()) === 0;
   const role = isOwner ? 'owner' : 'user';
 
@@ -78,6 +78,7 @@ export const registerUserJson = asyncHandler(async (req, res) => {
   createSendResTokenJson(createUser, 201, res);
 });
 
+// Login with cookie
 export const loginUser = asyncHandler(async (req, res) => {
   // Email validation
   if (!req.body.email) {
@@ -95,6 +96,30 @@ export const loginUser = asyncHandler(async (req, res) => {
 
   if (userData && (await userData.comparePassword(req.body.password))) {
     createSendResToken(userData, 200, res);
+  } else {
+    res.status(400);
+    throw new Error('Invalid credentials');
+  }
+});
+
+// Login without cookie
+export const loginUserWithoutCookie = asyncHandler(async (req, res) => {
+  // Email validation
+  if (!req?.body?.email) {
+    res.status(400);
+    throw new Error('Please add an email');
+  }
+
+  // Password Validation
+  if (!req?.body?.password) {
+    res.status(400);
+    throw new Error('Please add a password');
+  }
+
+  const userData = await User?.findOne({ email: req?.body?.email });
+
+  if (userData && (await userData?.comparePassword(req?.body?.password))) {
+    createSendResTokenJson(userData, 200, res);
   } else {
     res.status(400);
     throw new Error('Invalid credentials');
