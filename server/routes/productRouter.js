@@ -14,11 +14,14 @@ import {
 } from '../middlewares/authMidleware.js';
 import { upload as uploadCloudinary } from '../utils/cloudinaryUploadFileHandler.js';
 import { upload as uploadLocal } from '../utils/localUploadFileHandler.js';
+import { protectedWithoutCookieMiddleware } from '../middlewares/authWithoutCookieMidleware.js';
 const router = express.Router();
 
 router.post('/', uploadCloudinary.single('image'), CreateProduct);
-router.get('/', GetAllProduct);
-// router.get('/', protectedMiddleware, GetAllProduct);
+// get all products with protected use cookie middleware
+router.get('/', protectedMiddleware, GetAllProduct);
+// get all products with protected use cookie middleware
+router.get('/without-cookie', protectedWithoutCookieMiddleware, GetAllProduct);
 router.get('/:id', GetProductById);
 // router.get('/:id', protectedMiddleware, GetProductById);
 router.put(

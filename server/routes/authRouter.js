@@ -2,9 +2,10 @@ import express from 'express';
 import {
   getCurrentUser,
   loginUser,
+  loginUserWithoutCookie,
   logoutUser,
   registerUser,
-  registerUserJson,
+  registerUserWithoutCookie,
 } from '../controller/authController.js';
 import { protectedMiddleware } from '../middlewares/authMidleware.js';
 
@@ -13,9 +14,12 @@ const router = express.Router();
 // register with cookie
 router.post('/register', registerUser);
 // register without cookie
-router.post('/registerjson', registerUserJson);
+router.post('/register-without-cookie', registerUserWithoutCookie);
 
+// register with cookie
 router.post('/login', loginUser);
+// register without cookie
+router.post('/login-without-cookie', loginUserWithoutCookie);
 
 router.post('/logout', protectedMiddleware, logoutUser);
 
