@@ -14,29 +14,53 @@
 - [Manage pages Menggunakan React Router Dom](#manage-pages-menggunakan-react-router-dom)
 - <details open>
       <summary><a href="#fitur-login-dan-register">Fitur Login dan Register</a></summary>
-      <ul>
-        <li><a href="#fitur-login-dan-register-tanpa-global-state">Fitur  Login dan Register Tanpa Global State</a></li>
-        <li><details open>
-          <ul>
-            <li><a href="#mengapa-tidak-menggunakan-usestate-untuk-input-form">Mengapa Tidak Menggunakan useState untuk Input Form?</a></li>
-            <li><a href="#mengelola-state-dan-validasi-form-untuk-fitur-login-dan-register-dengan-custom-hook">Mengelola State dan Validasi Form untuk Fitur Login dan Register dengan Custom Hook</a></li>
-          </ul>
-        </details></li>
+        <ul>
+        <!-- dengan cookies -->
+          <li>
+           <details open>
+            <summary><a href="#fitur-login-dan-register">Fitur Login dan Register Dengan Cookies</a></summary>
+            <ul>
+              <li>
+              <details open>
+              <summary><a href="#fitur-login-dan-register-dengan-cookies-tanpa-global-state">Fitur  Login dan Register Dengan Cookies Tanpa Global State</a></summary>
+                <ul>
+                  <li><a href="#mengapa-tidak-menggunakan-usestate-untuk-input-form">Mengapa Tidak Menggunakan useState untuk Input Form?</a></li>
+                  <li><a href="#mengelola-state-dan-validasi-form-auth-untuk-fitur-login-dan-register-dengan-custom-hook">Mengelola State dan Validasi Form untuk Fitur Login dan Register dengan Custom Hook</a></li>
+                </ul>
+              </details>
+              </li>
+              <!-- cokies dengan global state -->
+              <li>
+              <details open>
+              <summary><a href="#fitur-login-dan-register-dengan-cookies-menggunakan-global-state">Fitur  Login dan Register Dengan Cookies Menggunakan Global State</a></summary>
+                <ul>
+                  <li><a href="#mengapa-tidak-menggunakan-usestate-untuk-input-form">Mengapa Tidak Menggunakan useState untuk Input Form?</a></li>
+                  <li><a href="#mengelola-state-dan-validasi-form-auth-untuk-fitur-login-dan-register-dengan-custom-hook">Mengelola State dan Validasi Form untuk Fitur Login dan Register dengan Custom Hook</a></li>
+                </ul>
+              </details>
+              </li>
+            </ul>
+           </details>
+          </li>
+          <!-- tanpa cookies -->
+          <li>
+           <details open>
+            <summary><a href="#fitur-login-dan-register-tanpa-cookies">Fitur Login dan Register Tanpa Cookies</a></summary>
+            <ul>
+              <li>
+              <details open>
+              <summary><a href="#fitur-login-dan-register-tanpa-cookies-dan-tanpa-global-state">Fitur  Login dan Register Tanpa Cookies dan Tanpa Global State</a></summary>
+                <ul>
+                  <li><a href="#mengapa-tidak-menggunakan-usestate-untuk-input-form">Mengapa Tidak Menggunakan useState untuk Input Form?</a></li>
+                  <li><a href="#mengelola-state-dan-validasi-form-auth-untuk-fitur-login-dan-register-dengan-custom-hook">Mengelola State dan Validasi Form untuk Fitur Login dan Register dengan Custom Hook</a></li>
+                </ul>
+              </details>
+              </li>
+            </ul>
+            </details>
+          <li>
       </ul>
-    </details>
-  <!-- - <details open>
-      <summary><a href="#fitur-login-dan-register">Fitur Login dan Register</a></summary>
-      <ul>
-        <li><a href="#fitur-login-dan-register-tanpa-global-state">Fitur  Login dan Register Tanpa Global State</a></li>
-        <li><details open>
-          <summary><a href="#mengapa-tidak-menggunakan-usestate-untuk-input-form">Mengapa Tidak Menggunakan useState untuk Input Form?</a></summary>
-          <ul>
-            <li><a href="#usestate-untuk-object">useState Untuk Object</a></li>
-            <li><a href="#usestate-untuk-nesting-object">useState Untuk Nesting Object</a></li>
-          </ul>
-        </details></li>
-      </ul>
-    </details> -->
+  </details>
 
 ## Kumpulan Fitur
 
@@ -816,7 +840,9 @@ Untuk melanjutkan fitur login dan register di sisi frontend, kita perlu menambah
 - Mengelola Status Authentikasi<br/>
   kita perlu mengelola status autentikasi user di frontend, misalnya dengan menggunakan Context API atau Redux untuk menyimpan status autentikasi global.
 
-### Fitur Login Dan Register Tanpa Global State
+### Fitur Login dan Register Dengan Cookies
+
+#### Fitur Login Dan Register Dengan Cookies Tanpa Global State
 
 Berikut beberapa langkah yang bisa kita lakukan:
 
@@ -861,6 +887,7 @@ Berikut beberapa langkah yang bisa kita lakukan:
 
     - Opsi ini memberitahu axios untuk menyertakan cookies dalam permintaan yang dikirimkan ke server, bahkan jika permintaan tersebut lintas domain.
     - Ini penting jika server Anda mengandalkan cookies untuk autentikasi (seperti JWT dalam cookie) karena tanpa `withCredentials: true`, cookies tidak akan disertakan dan server tidak akan mengenali permintaan sebagai autentik.
+      <a id="buat-auth-service"/>
 
 3.  Buat auth service <br/>
     Buat service auth yang berisi method untuk melakukan fethc api untuk fitur login dan register.
@@ -938,6 +965,8 @@ Berikut beberapa langkah yang bisa kita lakukan:
 
     export default useAuth;
     ```
+
+    <a id="buat-form-auth"/>
 
 5.  Buat Komponen `FormAuth` <br/>
     `FormAuth` ini akan Menggunakan hook `useAuth` untuk menangani submit form, error handling, dan menampilkan loading spinner.
@@ -1196,7 +1225,7 @@ Kita bisa mengelola state untuk name, email, dan password dengan menggunakan cus
    import authService from '../services/authService';
 
    interface useAuthReturnType {
-     handleSubmit: (Event: FormEvent, fields: FormDataType) => void;
+     handleSubmit: (Event: FormEvent) => void;
      errors: ErrorsType;
      isLoading: boolean;
      formData: FormDataType;
@@ -1264,7 +1293,7 @@ Kita bisa mengelola state untuk name, email, dan password dengan menggunakan cus
        return Object.keys(newErrors).length === 0;
      };
 
-     const handleSubmit = async (event: FormEvent, fields: FormDataType) => {
+     const handleSubmit = async (event: FormEvent) => {
        event.preventDefault();
        setIsLoading(true);
        setErrors({});
@@ -1278,7 +1307,7 @@ Kita bisa mengelola state untuk name, email, dan password dengan menggunakan cus
 
        try {
          const url = isRegister ? '/auth/register' : '/auth/login';
-         await authService(url, fields);
+         await authService(url, formData);
 
          if (isRegister) {
            navigate('/login');
@@ -1378,7 +1407,7 @@ Kita bisa mengelola state untuk name, email, dan password dengan menggunakan cus
        <div className="grid h-screen place-items-center">
          <form
            className="flex flex-col p-8 shadow-lg card w-96 bg-base-300 gap-y-4"
-           onSubmit={(event) => handleSubmit(event, formData)}
+           onSubmit={(event) => handleSubmit(event)}
          >
            <h4 className="text-3xl font-bold text-center">
              {isRegister ? 'Register' : 'Login'}
@@ -1448,14 +1477,245 @@ Kita bisa mengelola state untuk name, email, dan password dengan menggunakan cus
    export default FormAuth;
    ```
 
+#### Fitur Login dan Register Dengan Cookies Dengan Global State
+
+coming soon
+
+### Fitur Login dan Register Tanpa Cookies
+
+#### Fitur Login dan Register Tanpa Cookies Dan Tanpa Global State
+
+1. Buat authService untuk Mengelola fetch api Register, sama seperti di fitur [register dengan cookies](#buat-auth-service)<br/>
+   authService yang sudah Kita buat sebenarnya sudah siap untuk menangani fitur register. Kita hanya perlu memanggilnya dengan URL yang sesuai ('/register') dan data yang diperlukan dari form register.
+2. Update useAuth Hook untuk Login dan Registrasi<br/>
+   Tambahkan logika di dalam useAuth hook untuk menangani register dengan token JWT yang tidak menggunakan cookie. Simpan token di localStorage atau sessionStorage.
+
+   ```ts
+   // src/hooks/useAuthWithoutCookies.ts
+   // src/hooks/useAut.ts
+
+   import { ChangeEvent, FormEvent, useState } from 'react';
+   import { useNavigate } from 'react-router-dom';
+   import { authService } from '../services/authService';
+
+   interface FormDataType {
+     name: string;
+     email: string;
+     password: string;
+   }
+
+   interface ErrorsType {
+     name?: string;
+     email?: string;
+     password?: string;
+     apiError?: string;
+   }
+
+   interface UseAuthReturnType {
+     handleSubmit: (event: FormEvent) => void;
+     handleChange: (event: ChangeEvent<HTMLInputElement>) => void;
+     errors: ErrorsType;
+     isLoading: boolean;
+     formData: FormDataType;
+   }
+
+   const useAuthWithoutCookies = (isRegister: boolean): UseAuthReturnType => {
+     const [formData, setFormData] = useState<FormDataType>({
+       name: '',
+       email: '',
+       password: '',
+     });
+     const [isLoading, setIsLoading] = useState<boolean>(false);
+     const [errors, setErrors] = useState<ErrorsType>({});
+     const navigate = useNavigate();
+
+     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+       const { name, value } = event.target;
+       setFormData((prevData) => ({
+         ...prevData,
+         [name]: value,
+       }));
+
+       // Clear error for the modified field
+       setErrors((prevErrors) => ({ ...prevErrors, [name]: '' }));
+     };
+
+     // Validate form data and set error messages
+     const validateForm = (): boolean => {
+       const { name, email, password } = formData;
+       const newErrors: ErrorsType = {};
+
+       if (isRegister && !name) {
+         newErrors.name = 'Name is required';
+       } else if (name?.length < 3 && isRegister) {
+         newErrors.name = 'Name must be at least 3 characters';
+       }
+
+       if (!email) {
+         newErrors.email = 'Email is required';
+       } else if (!/\S+@\S+\.\S+/.test(email)) {
+         newErrors.email = 'Invalid email address';
+       }
+
+       if (!password) {
+         newErrors.password = 'Password is required';
+       } else if (password?.length < 3) {
+         newErrors.password = 'Password must be at least 3 characters';
+       }
+
+       setErrors(newErrors);
+
+       return Object.keys(newErrors).length === 0;
+     };
+
+     const handleSubmit = async (event: FormEvent) => {
+       event.preventDefault();
+       setIsLoading(true);
+       setErrors({});
+
+       const isValid = validateForm();
+       if (!isValid) {
+         setIsLoading(false);
+         return;
+       }
+
+       try {
+         const url = isRegister
+           ? '/auth/register-without-cookie'
+           : '/auth/login';
+         const response = await authService(url, formData);
+         console.log(response.data);
+
+         if (response?.data?.token) {
+           localStorage.setItem('jwt', response?.data?.token);
+           navigate(isRegister ? '/login' : '/');
+         }
+       } catch (error: any) {
+         setErrors((prevErrors) => ({
+           ...prevErrors,
+           apiError: error?.message,
+         }));
+       } finally {
+         setIsLoading(false);
+       }
+     };
+
+     return {
+       handleSubmit,
+       handleChange,
+       errors,
+       isLoading,
+       formData,
+     };
+   };
+
+   export default useAuthWithoutCookies;
+   ```
+
+3. Buat FormAuth Component hampir sama seperti di fitur [register dengan cookies](#buat-form-auth).<br/>  
+   Pastikan component ini menggunakan hook useAuth untuk login dan register tanpa cookies.
+
+   ```ts
+   // src/components/FormAuth.tsx
+   // src/components/FormAuthWithoutCookies.tsx
+
+   import FormInput from './form/FormInput';
+   import { Link } from 'react-router-dom';
+   import LoadingSpinner from './LoadingSpinner';
+   import ErrorMessage from './ErrorMessage';
+   import useAuthWithoutCookies from '../hooks/useAuthWithoutCookies';
+
+   const FormAuthWithoutCookies = ({ isRegister }: { isRegister: boolean }) => {
+     //-----------------------------------------------------------------------------------
+     const { handleSubmit, errors, isLoading, formData, handleChange } =
+       useAuthWithoutCookies(isRegister);
+     //-----------------------------------------------------------------------------------
+
+     return (
+       <div className="place-items-center grid h-screen">
+         <form
+           className="card w-96 bg-base-300 gap-y-4 flex flex-col p-8 shadow-lg"
+           onSubmit={(event) => handleSubmit(event)}
+         >
+           <h4 className="text-3xl font-bold text-center">
+             {isRegister ? 'Register' : 'Login'}
+           </h4>
+           {isRegister && (
+             <FormInput
+               type="text"
+               name="name"
+               label="name"
+               value={formData.name}
+               onChange={handleChange}
+               error={errors.name}
+             />
+           )}
+           <FormInput
+             type="email"
+             name="email"
+             label="email"
+             value={formData.email}
+             onChange={handleChange}
+             error={errors.email}
+           />
+           <FormInput
+             type="password"
+             name="password"
+             label="password"
+             value={formData.password}
+             onChange={handleChange}
+             error={errors.password}
+           />
+
+           {isLoading ? (
+             <LoadingSpinner />
+           ) : (
+             <div className="mt-4">
+               <button className="btn btn-primary btn-block">
+                 {isRegister ? 'Register' : 'Login'}
+               </button>
+             </div>
+           )}
+
+           {errors.apiError && <ErrorMessage message={errors.apiError} />}
+
+           {isRegister ? (
+             <p className="text-center">
+               Sudah punya akun?{' '}
+               <Link to={'/login'} className="link link-hover link-accent ml-2">
+                 Login
+               </Link>
+             </p>
+           ) : (
+             <p className="text-center">
+               Belum punya akun?{' '}
+               <Link
+                 to={'/register'}
+                 className="link link-hover link-accent ml-2"
+               >
+                 Register
+               </Link>
+             </p>
+           )}
+         </form>
+       </div>
+     );
+   };
+
+   export default FormAuthWithoutCookies;
+   ```
+
+4. Update ProtectedRoute Component
+   Pastikan ProtectedRoute sekarang memeriksa token dari localStorage atau sessionStorage (tergantung di mana kamu menyimpannya).
+
 ## Logout
 
 ### Logout dengan Menghapus Cookies
 
-Untuk menambahkan fitur logout, kita perlu memastikan bahwa token autentikasi yang disimpan di frontend (biasanya di localStorage atau sessionStorage) dihapus ketika user melakukan logout. Kita juga harus mengarahkan user kembali ke halaman login atau halaman lain setelah logout. Berikut adalah langkah-langkah dan contoh implementasinya:
+Ketika user logout, server menghapus cookie yang berisi token dengan mengirimkan cookie kosong yang segera kedaluwarsa. Ini dilakukan dengan menetapkan expires pada waktu yang sudah berlalu, sehingga browser secara otomatis menghapus cookie token tersebut. Kita juga harus mengarahkan user kembali ke halaman login atau halaman lain setelah logout. Berikut adalah langkah-langkah dan contoh implementasinya:
 
 1. Buat Fungsi Logout di authService <br/>
-   Fungsi logout ini akan memanggil [API logout di backend](https://github.com/argianardi/MERNplayground/tree/learn/server#proteksi-endpoint-logout-dan-get-user), yang akan menghapus cookie JWT di server dan mengarahkan pengguna ke halaman login.
+   Fungsi logout ini akan memanggil [API logout di backend](https://github.com/argianardi/MERNplayground/tree/learn/server#proteksi-endpoint-logout-dan-get-user), yang akan menghapus cookie JWT di server dan mengarahkan user ke halaman login.
 
    ```ts
    // src/services/authService.ts
@@ -1688,3 +1948,5 @@ Untuk menambahkan fitur logout, kita perlu memastikan bahwa token autentikasi ya
 
    export default Header;
    ```
+
+### Logout untuk Login & Register Tanpa Cookies
