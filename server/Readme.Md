@@ -1,3 +1,89 @@
+## Keyword
+
+- <details open>
+  <summary><a href="#glosarium">Glosarium</a></summary>
+   <ul>
+    <li><a href="#format-applicationx-www-form-urlencoded">Format application/x-www-form-urlencoded</a></li>
+    <li><a href="#path">Path</a></li>
+    <li><a href="#mime">MIME</a></li>
+    <li><a href="#buffer">Buffer</a></li>
+    <li><a href="#stream">Stream</a></li>
+   </ul>
+  </details>
+- [Setup Project](#setup-project)
+- <details open>
+    <summary><a href="#buat-error-handling">Buat Error Handling</a></summary>
+     <ul>
+      <li><a href="#middleware-error-not-found"> Middleware Error Not Found</a></li>
+      <li><a href="#middleware-error-not-found">Middleware Error Handler</a></li>
+      <li><a href="#menggunakan-middleware-error-di-file-entry-point">Menggunakan Middleware Error di File Entry Point</a></li>
+      <li><a href="#buat-async-handler-menghindari-penggunaan-try-catch-berulang">Buat Async Handler Menghindari Penggunaan Try-Catch Berulang</a></li>
+     </ul>
+    </details>
+- <details open>
+    <summary><a href="#fitur-register-menggunakan-jwt">Fitur Register Menggunakan JWT</a></summary>
+     <ul>
+      <li><a href="#register-menggunakan-cookies"> Register Menggunakan Cookies</a></li>
+      <li><a href="#register-tanpa-menggunakan-cookies">Register Tanpa Cookies</a></li>
+     </ul>
+    </details>
+- <details open>
+    <summary><a href="#fitur-login-menggunakan-jwt">Fitur Login Menggunakan JWT</a></summary>
+     <ul>
+      <li><a href="#login-menggunakan-cookies">Login Menggunakan Cookies</a></li>
+      <li><a href="#login-tanpa-menggunakan-cookies">Login Tanpa Cookies</a></li>
+     </ul>
+    </details>
+- [Proteksi endpoint, Logout, dan Get User](#proteksi-endpoint-logout-dan-get-user)
+- [Membuat Fitur Create Product](#membuat-fitur-create-product)
+- [Fitur Get All Products dan Get Product By Id](#fitur-get-all-products-dan-get-product-by-id)
+- [Update Product](#update-product)
+- [Delete Product](#delete-product)
+- [Buat Authorization Berdasarkan Role](#buat-authorization-berdasarkan-role)
+- [Upload file (image) menggunakan Multer](#upload-file-image-menggunakan-multer)
+- [Cara Membuat Seed untuk Product](#cara-membuat-seed-untuk-product)
+- [Menambahkan Filter dan Pagination pada Produk](#menambahkan-filter-dan-pagination-pada-produk)
+- [Searching Berdasarkan Nama Product](#searching-berdasarkan-nama-product)
+- [Membuat Fitur Post Order](#membuat-fitur-post-order)
+- [Get All Orders, Get Order By Id dan Get Current User Order](#get-all-orders-get-order-by-id-dan-get-current-user-order)
+- [Gunakan Middleware Express Mongo Sanitize Dan Helmet](#gunakan-middleware-express-mongo-sanitize-dan-helmet)
+- [CORS di Backend](#cors-di-backend)
+- <details open>
+  <summary><a href="#gunakan-middleware-express-mongo-sanitize-dan-helmet">Gunakan Middleware Express Mongo Sanitize Dan Helmet</a></summary>
+   <ul>
+    <li><a href="#express-mongo-sanitize">Express Mongo Sanitize</a></li>
+    <li><a href="#streamifier">Streamifier</a></li>
+    <li><a href="#helmet">Helmet</a></li>
+    <li><a href="#penggunaan-express-mongo-sanitize-dan-helmet">Penggunaan Express Mongo Sanitize dan Helmet</a></li>
+   </ul>
+  </details>
+- <details open>
+  <summary><a href="#upload-file-dengan-cloudinary-dan-streamifier-di-expressjs">Upload File dengan Cloudinary dan Streamifier di ExpressJS</a></summary>
+   <ul>
+    <li><a href="#cloudinary">Cloudinary</a></li>
+    <li><a href="#streamifier">Streamifier</a></li>
+    <li><a href="#upload-file-menggunakan-cloudinary-dan-streamifier">Upload File Menggunakan Cloudinary dan Streamifier</a></li>
+   </ul>
+  </details>
+
+  <!--
+
+
+- <details open>
+     <summary><a href="#fitur-login-dan-register">Fitur Login dan Register</a></summary>
+     <ul>
+       <li>
+        <details open>
+        <summary><a href="#fitur-login-dan-register-tanpa-global-state">Fitur  Login dan Register Tanpa Global State</a></summary>
+         <ul>
+           <li><a href="#mengapa-tidak-menggunakan-usestate-untuk-input-form">Mengapa Tidak Menggunakan useState untuk Input Form?</a></li>
+           <li><a href="#mengelola-state-dan-validasi-form-auth-untuk-fitur-login-dan-register-dengan-custom-hook">Mengelola State dan Validasi Form untuk Fitur Login dan Register dengan Custom Hook</a></li>
+         </ul>
+       </details>
+       </li>
+     </ul>
+   </details> -->
+
 ## Glosarium
 
 ### Format application/x-www-form-urlencoded
@@ -520,9 +606,9 @@ Berikut langkah - langkah untuk membuat fitru register menggunakan jwt [ref](htt
    export default router;
    ```
 
-   <a id="tambahkan-middlewar-cookie"/>
+   <a id="assign-auth-router"/>
 
-5. Tambahkan middleware cookie parser di fil entry point kita
+5. Tambahkan middleware cookie parser dan assign auth router di file entry point kita
 
    ```js
    // index.js
@@ -545,10 +631,10 @@ Berikut langkah - langkah untuk membuat fitru register menggunakan jwt [ref](htt
    app.use(express.urlencoded({ extended: true }));
    //-----------------------------------------------------------------------------------------------
    app.use(cookieParser());
-   //-----------------------------------------------------------------------------------------------
 
    // Route
    app.use('/api/v1/auth', authRouter);
+   //-----------------------------------------------------------------------------------------------
 
    // Error handling
    app.use(notFound);
@@ -711,10 +797,14 @@ Untuk membuat fitur register tanpa menggunakan cookies, langkah-langkahnya hampi
    ```
 
 4. Buat Router untuk Register, sama seperti di fitur [register dengan cookies](#buat-register-router)
+5. Assign auth router di file entry point kita, (sudah dilakukan di fitur [register ](#assign-auth-router))
 
 ## Fitur Login Menggunakan JWT
 
+### Fitur Login Menggunakan Cookies
+
 Berikut langkah - langkahnya [ref](https://www.youtube.com/watch?v=ADLwHJButZ0&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=20):
+<a id="compare-password"/>
 
 1. Tambahkan Method Compare Password Model User <br/>
    Tambahkan method comparePassword untuk membandingkan password yang di requst user (melalui body req) dengan password dari data user yang tersimpan di database.
@@ -870,12 +960,217 @@ Berikut langkah - langkahnya [ref](https://www.youtube.com/watch?v=ADLwHJButZ0&l
    export default router;
    ```
 
-## Proteksi endpoint, Logout, dan Get User
+### Fitur Login Tanpa Cookies
 
-Kita akan membahas cara melakukan proteksi endpoint, membuat fungsi logout, dan mengambil data user yang sedang login menggunakan [JWT](https://www.npmjs.com/package/jsonwebtoken). Kita harus membuat controller, middleware, dan route yang diperlukan [ref](https://www.youtube.com/watch?v=fEoI93Z3Efo&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=19)
+1. Tambahkan Method Compare Password Model User, sama seperti di fitur [login menggunakan cookie](#compare-password) <br/>
+   Tambahkan method comparePassword untuk membandingkan password yang di requst user (melalui body req) dengan password dari data user yang tersimpan di database.
+2. Buat controller Untuk Login <br/>
+   Kontroler ini akan mengurus proses login yaitu validation dan juga akan membuat token JWT serta mengirimkannya dalam cookie.
 
-- authController <br/>
-  Pertama, kita akan membuat beberapa fungsi di authController untuk registrasi, login, mendapatkan user yang sedang login, dan logout.
+   ```js
+   // src/controller/authController.js
+
+   import jwt from 'jsonwebtoken';
+   import asyncHandler from '../middlewares/asyncHandler.js';
+   import User from '../models/userModel.js';
+
+   // To create token
+   const signToken = (id) => {
+     return jwt.sign({ id }, process.env.JWT_SECRET, {
+       expiresIn: '6d',
+     });
+   };
+
+   // Create and send token use in cookie
+   const createSendResToken = (user, statusCode, res) => {
+     const token = signToken(user._id);
+     const isDev = process.env.NODE_ENV === 'development' ? false : true;
+     const cookieOption = {
+       expire: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
+       security: isDev,
+     };
+
+     res.cookie('jwt', token, cookieOption);
+
+     user.password = undefined;
+
+     res.status(statusCode).json({
+       code: statusCode.toString(),
+       status: 'Success',
+       message: 'User created successfully',
+       data: user,
+     });
+   };
+
+   // Create and send token to json response
+   const createSendResTokenJson = (user, statusCode, res) => {
+     const token = signToken(user?._id);
+
+     // Delete password from user before send it to client
+     user.password = undefined;
+
+     res?.status(statusCode).json({
+       code: statusCode.toString(),
+       status: 'Success',
+       message: 'User created successfully',
+       data: {
+         user,
+         token,
+       },
+     });
+   };
+
+   // Register with cookie
+   export const registerUser = asyncHandler(async (req, res) => {
+     const isOwner = (await User.countDocuments()) === 0;
+     const role = isOwner ? 'owner' : 'user';
+
+     const createUser = await User.create({
+       name: req.body.name,
+       email: req.body.email,
+       password: req.body.password,
+       role: role,
+     });
+
+     createSendResToken(createUser, 201, res);
+   });
+
+   // Register without cookie
+   export const registerUserWithoutCookie = asyncHandler(async (req, res) => {
+     const isOwner = (await User?.countDocuments()) === 0;
+     const role = isOwner ? 'owner' : 'user';
+
+     const createUser = await User?.create({
+       name: req?.body?.name,
+       email: req?.body?.email,
+       password: req?.body?.password,
+       role: role,
+     });
+
+     createSendResTokenJson(createUser, 201, res);
+   });
+
+   // Login with cookie
+   export const loginUser = asyncHandler(async (req, res) => {
+     // Email validation
+     if (!req.body.email) {
+       res.status(400);
+       throw new Error('Please add an email');
+     }
+
+     // Password validation
+     if (!req.body.password) {
+       res.status(400);
+       throw new Error('Please add a password');
+     }
+
+     const userData = await User.findOne({ email: req.body.email });
+
+     if (userData && (await userData.comparePassword(req.body.password))) {
+       createSendResToken(userData, 200, res);
+     } else {
+       res.status(400);
+       throw new Error('Invalid credentials');
+     }
+   });
+
+   //----------------------------------------------------------------------------------------------------------------
+   // Login without cookie
+   export const loginUserWithoutCookie = asyncHandler(async (req, res) => {
+     // Email validation
+     if (!req?.body?.email) {
+       res.status(400);
+       throw new Error('Please add an email');
+     }
+
+     // Password Validation
+     if (!req?.body?.password) {
+       res.status(400);
+       throw new Error('Please add a password');
+     }
+
+     const userData = await User?.findOne({ email: req?.body?.email });
+
+     if (userData && (await userData?.comparePassword(req?.body?.password))) {
+       createSendResTokenJson(userData, 200, res);
+     } else {
+       res.status(400);
+       throw new Error('Invalid credentials');
+     }
+   });
+   //----------------------------------------------------------------------------------------------------------------
+
+   export const getCurrentUser = asyncHandler(async (req, res) => {
+     const user = await User.findById(req.user._id).select('-password');
+
+     if (user) {
+       return res.status(200).json({
+         code: '200',
+         status: 'Success',
+         message: 'Request was successful.',
+         data: user,
+       });
+     } else {
+       res.status(404);
+       throw new Error('User not found');
+     }
+   });
+
+   export const logoutUser = async (req, res) => {
+     res.cookie('jwt', '', {
+       expires: new Date(Date.now()),
+     });
+
+     res.status(200).json({
+       message: 'Logout Berhasil',
+     });
+   };
+   ```
+
+3. Tambahkan route baru untuk login menggunakan controller login tadi <br/>
+
+   ```js
+   /routes/authRouter.js
+
+   import express from 'express';
+   import {
+     getCurrentUser,
+     loginUser,
+     loginUserWithoutCookie,
+     logoutUser,
+     registerUser,
+     registerUserWithoutCookie,
+   } from '../controller/authController.js';
+   import { protectedMiddleware } from '../middlewares/authMidleware.js';
+
+   const router = express.Router();
+
+   // register with cookie
+   router.post('/register', registerUser);
+   // register without cookie
+   router.post('/register-without-cookie', registerUserWithoutCookie);
+   // register with cookie
+   router.post('/login', loginUser);
+
+   //----------------------------------------------------------------------------------
+   // register without cookie
+   router.post('/login-without-cookie', loginUserWithoutCookie);
+   //----------------------------------------------------------------------------------
+
+   router.post('/logout', protectedMiddleware, logoutUser);
+
+   router.get('/getuser', protectedMiddleware, getCurrentUser);
+
+   export default router;
+   ```
+
+## Fitur Logout
+
+### Logout Untuk Login dengan Cookies
+
+Ketika membuat fitur logout untuk yang [loginnya menggunakan cookie](#fitur-login-menggunakan-cookies), Kita (backend) harus membuat API untuk menghapus cookie yang berisi [JWT](https://www.npmjs.com/package/jsonwebtoken) token dengan mengirimkan cookie kosong yang segera kedaluwarsa. Ini dilakukan dengan menetapkan expires pada waktu yang sudah berlalu, sehingga nantinya browser (client / frontend) secara otomatis menghapus cookie token tersebut [ref](https://www.youtube.com/watch?v=fEoI93Z3Efo&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=19).
+
+- Buat controller untuk menghapus token di dalam cookie
 
   ```js
   // controllers/authController.js
@@ -947,7 +1242,6 @@ Kita akan membahas cara melakukan proteksi endpoint, membuat fungsi logout, dan 
     }
   });
 
-  //--------------------------------------------------------------------------------------------------------------
   export const getCurrentUser = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id).select('-password');
 
@@ -964,6 +1258,7 @@ Kita akan membahas cara melakukan proteksi endpoint, membuat fungsi logout, dan 
     }
   });
 
+  //--------------------------------------------------------------------------------------------------------------
   export const logoutUser = async (req, res) => {
     res.cookie('jwt', '', {
       expires: new Date(Date.now()),
@@ -976,14 +1271,57 @@ Kita akan membahas cara melakukan proteksi endpoint, membuat fungsi logout, dan 
   //--------------------------------------------------------------------------------------------------------------
   ```
 
-- Membuat protectedMiddleware<br/>
-  Middleware ini akan melindungi endpoint yang hanya bisa diakses oleh user yang sudah login.
+  - Fungsi ini menghapus token JWT yang disimpan dalam cookie dengan mengatur cookie jwt menjadi string kosong `('')` dan mengatur tanggal kedaluwarsa cookie (expires) ke waktu saat ini (`Date.now()`).
+  - Dengan menghapus atau mengosongkan cookie ini, server memastikan bahwa token JWT yang digunakan untuk autentikasi tidak lagi valid atau dapat digunakan untuk request API lainnya.
+
+- Buat Route untuk menjalankan controller hapus token di cookie tadi
 
   ```js
-  // middlewares/authMiddleware.js
+  // routes/authRouter.js
+  import express from 'express';
+  import {
+    getCurrentUser,
+    loginUser,
+    logoutUser,
+    registerUser,
+  } from '../controller/authController.js';
+  import { protectedMiddleware } from '../middlewares/authMidleware.js';
+
+  const router = express.Router();
+
+  router.post('/register', registerUser);
+
+  router.post('/login', loginUser);
+
+  //------------------------------------------------------------------------------------------------
+  router.get('/logout', protectedMiddleware, logoutUser);
+  //------------------------------------------------------------------------------------------------
+
+  router.get('/getuser', protectedMiddleware, getCurrentUser);
+
+  export default router;
+  ```
+
+### Logout untuk login dan register tanpa cookie
+
+Fitur Logout untuk [login tanpa cookie](#fitur-login-menggunakan-jwt) dan [register tanpa cookie](#register-tanpa-menggunakan-cookies)
+kita tidak perlu menghapus token dari cookie karena token tersebut akan disimpan di client-side (misalnya, di localStorage atau sessionStorage). Sehingga kita (backend) tidak perlu membuat api untuk logout ini, karena tokennya tersimpan di sisi client (browser). Itu jadi tugas frontend untuk menghapus token tersebut.
+
+## Middleware Auth Protected
+
+Midleware auth protected merupakan middleware yang akan memeriksa apakah token yang diberikan dalam header Authorization valid dan sesuai. Jika valid, middleware akan melanjutkan request ke endpoint yang direquest. Jika tidak, middleware akan menolak akses dengan mengembalikan pesan error unauthorized yang artinya user belum login.
+
+### Middleware Auth Protected Dengan Cookie
+
+Untuk melindungi endpoint dengan middleware pada aplikasi kita yang menggunakan [JWT](https://www.npmjs.com/package/jsonwebtoken) yang disimpan di dalam cookie. Jadi middleware ini akan mengambil token yang tersimpan dengan di dalam cookie. Dengan token itu kita akan menentukan user tersebut diizinkan untuk mengakses endpoint tersebut atau tidak [ref](https://www.youtube.com/watch?v=fEoI93Z3Efo&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=19).
+
+- Buat middleware auth protected
+
+  ```js
+  // src/middlewares/authMiddleware.js
 
   import jwt from 'jsonwebtoken';
-  import User from '../models/users.js';
+  import User from '../models/userModel.js';
   import asyncHandler from './asyncHandler.js';
 
   export const protectedMiddleware = asyncHandler(async (req, res, next) => {
@@ -1005,11 +1343,20 @@ Kita akan membahas cara melakukan proteksi endpoint, membuat fungsi logout, dan 
   });
   ```
 
-- Mengupdate authRoutes <br/>
-  Tambahkan route untuk registrasi, login, logout, dan mengambil user yang sedang login.
+  - Token Extraction
+    - Middleware ini mengecek apakah ada token JWT yang disimpan di cookie jwt.
+    - Jika token ada, proses akan berlanjut untuk memverifikasi token tersebut.
+  - Token Verification
+    - jwt.verify digunakan untuk memverifikasi token menggunakan JWT_SECRET yang disimpan di process.env.JWT_SECRET.
+    - Jika token valid, middleware akan mendekode token dan mengambil ID user (decoded.id) dari token.
+    - Middleware kemudian mencari user di database berdasarkan ID yang didekode tadi menggunakan User.findById.
+    - User ditemukan dan disimpan dalam req.user, tetapi dengan menghapus field password (.select('-password')). Jadi, req.user akan berisi semua data user kecuali kata sandinya
+
+- Tambahkan middleware Auth Protected yang kita buat ke route endpoint yang ingin kita protect.
 
   ```js
   // routes/authRouter.js
+
   import express from 'express';
   import {
     getCurrentUser,
@@ -1033,6 +1380,125 @@ Kita akan membahas cara melakukan proteksi endpoint, membuat fungsi logout, dan 
 
   export default router;
   ```
+
+### Middleware Auth Protected Tanpa Cookie
+
+Untuk melindungi endpoint dengan middleware pada aplikasikita yang menggunakan JWT (JSON Web Token) tanpa cookie, Anda perlu membuat middleware yang akan memeriksa apakah token yang diberikan dalam header Authorization valid dan sesuai. Jika valid, middleware akan melanjutkan permintaan ke endpoint yang direquest. Jika tidak, middleware akan menolak akses dengan mengembalikan pesan error unauthoirzed yang berarti user tersebut belum login.
+
+- Buat middleware auth protected<br/>
+  Middleware ini akan memeriksa token yang ada di header Authorization dan memverifikasinya.
+
+  ```js
+  // src/middlewares/authWithoutCookieMiddleware.js
+
+  import jwt from 'jsonwebtoken';
+  import asyncHandler from './asyncHandler.js';
+
+  export const protectedWithoutCookieMiddleware = asyncHandler(
+    async (req, res, next) => {
+      let token;
+      token = req?.headers?.authorization;
+
+      // Check if the token is provided in the header
+      if (
+        req?.headers?.authorization &&
+        req?.headers?.authorization?.startsWith('Bearer')
+      ) {
+        try {
+          // Get token from the header
+          token = req?.headers?.authorization?.split(' ')[1];
+
+          // Verify token
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+          // Move to the next middleware or controller
+          next();
+        } catch (error) {
+          console.log(error);
+          res.status(401);
+          throw new Error('Not authorized, token failed');
+        }
+      }
+
+      if (!token) {
+        res.status(401);
+        throw new Error('Not authorized, no token');
+      }
+    }
+  );
+  ```
+
+- Tambahkan middleware Auth Protected yang kita buat ke route endpoint yang ingin kita protect.
+
+  ```js
+  // src/routes/productRouter.js
+
+  import express from 'express';
+  import {
+    CloudinaryUploadImage,
+    CreateProduct,
+    DeleteProduct,
+    GetAllProduct,
+    GetProductById,
+    LocalUploadImage,
+    UpdateProduct,
+  } from '../controller/productController.js';
+  import {
+    ownerMiddleware,
+    protectedMiddleware,
+  } from '../middlewares/authMidleware.js';
+  import { upload as uploadCloudinary } from '../utils/cloudinaryUploadFileHandler.js';
+  import { upload as uploadLocal } from '../utils/localUploadFileHandler.js';
+  import { protectedWithoutCookieMiddleware } from '../middlewares/authWithoutCookieMidleware.js';
+  const router = express.Router();
+
+  router.post('/', uploadCloudinary.single('image'), CreateProduct);
+  // get all products with protected use cookie middleware
+  router.get('/', protectedMiddleware, GetAllProduct);
+  // get all products with protected use cookie middleware
+  //-----------------------------------------------------------------------------------------------
+  router.get(
+    '/without-cookie',
+    protectedWithoutCookieMiddleware,
+    GetAllProduct
+  );
+  //-----------------------------------------------------------------------------------------------
+  router.get('/:id', GetProductById);
+  // router.get('/:id', protectedMiddleware, GetProductById);
+  router.put(
+    '/:id',
+    protectedMiddleware,
+    ownerMiddleware,
+    uploadCloudinary.single('image'),
+    UpdateProduct
+  );
+  router.delete('/:id', protectedMiddleware, ownerMiddleware, DeleteProduct);
+  router.post(
+    '/file-upload-local',
+    protectedMiddleware,
+    ownerMiddleware,
+    uploadLocal.single('image'),
+    LocalUploadImage
+  );
+
+  router.post(
+    '/file-upload-cloudinary',
+    protectedMiddleware,
+    ownerMiddleware,
+    uploadCloudinary.single('image'),
+    CloudinaryUploadImage
+  );
+
+  export default router;
+  ```
+
+  - `req.headers.authorization`: Mengecek apakah header Authorization ada pada request.
+  - `req.headers.authorization.startsWith('Bearer')`: Mengecek apakah token dimulai dengan kata "Bearer", yang merupakan konvensi untuk menunjukkan bahwa ini adalah token bearer.
+  - `token = req.headers.authorization.split(' ')[1]`: Ekstraksi token dari header dengan mengabaikan kata "Bearer" dan hanya mengambil nilai tokennya.
+  - `jwt.verify(token, process.env.JWT_SECRET)`: Verifikasi token menggunakan JWT_SECRET yang disimpan dalam variabel lingkungan (.env). JWT_SECRET adalah kunci rahasia yang digunakan untuk memverifikasi keaslian token. Hasil verifikasi disimpan dalam variabel decoded.
+  - `User.findById(decoded.id)`: Mengambil data pengguna dari database berdasarkan ID yang terdapat di dalam token (decoded.id).
+  - `select('-password')`: Menghilangkan password dari objek pengguna yang dikembalikan, sehingga password tidak ikut terkirim ke frontend.
+  - `req.user`: Menyimpan data pengguna yang ditemukan ke dalam req.user, sehingga data ini dapat digunakan di middleware atau controller berikutnya.
 
 ## Membuat Fitur Create Product
 
