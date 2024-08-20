@@ -1,19 +1,19 @@
 interface FormSelectType {
-  defultValue?: string;
+  defaultValue?: string;
   label: string;
   list: string[];
   name: string;
 }
 
-const FormSelect = ({ defultValue, label, list, name }: FormSelectType) => {
+const FormSelect = ({ defaultValue, label, list, name }: FormSelectType) => {
   return (
     <div className="form-control">
       <label className="label">
-        <span className="capitalize label-text">{label}</span>
+        <span className="label-text capitalize">{label}</span>
       </label>
       <select
         name={name}
-        defaultValue={defultValue}
+        defaultValue={defaultValue}
         className="select select-bordered"
       >
         {list.map((item) => (
