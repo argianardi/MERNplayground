@@ -122,6 +122,224 @@ Untuk mengubah format angka menjadi mata uang Rupiah, kita dapat menggunakan Int
   export default ProductCard;
   ```
 
+### Fitur Search Tanpa Use Loader
+
+Kali ini kita akan membuat fitur search untuk product yang sebelumnya sudah kita fetch [di sini](#fetch-api-dengan-middleware-auth-protected-tanpa-cookie). Fitur ini memungkinkan pengguna untuk memasukkan nama produk dan kategori, yang kemudian akan digunakan untuk mengambil data produk dari API berdasarkan filter tersebut.
+
+1. Modifikasi getAllProductsWithoutCookie Service<br/>
+   Service ini perlu diperbarui untuk menerima name dan category sebagai parameter dan mengirimkan query ke API.
+
+   ```ts
+   // src/services/prductServiceWithoutCookie
+
+   import { NavigateFunction } from 'react-router-dom';
+   import customAPI from '.';
+
+   // Get token from local storage
+   const token = localStorage.getItem('jwt');
+
+   export const getAllProductsWithoutCookie = async (
+     navigate: NavigateFunction,
+     name: string | null,
+     category: string | null
+   ) => {
+     try {
+       const response = await customAPI.get('/products/without-cookie', {
+         headers: {
+           Authorization: `Bearer ${token}`,
+         },
+         //----------------------------------------------------------------------------------
+         params: {
+           name,
+           category,
+         },
+         //----------------------------------------------------------------------------------
+       });
+
+       return response?.data?.data;
+     } catch (error: any) {
+       if (error?.response) {
+         if (error?.response?.status === 401) {
+           localStorage.removeItem('jwt');
+           navigate('/login-without-cookie');
+
+           throw new Error('Session expired, please log in again');
+         } else {
+           throw new Error(
+             error?.response?.data?.message || 'Something went wrong'
+           );
+         }
+       } else {
+         throw new Error('Network error');
+       }
+     }
+   };
+   ```
+
+2. Modifikasi useProductsWithoutCookie Hook<br/>
+   Custom hook perlu diperbarui untuk menerima name dan category sebagai parameter dan mengirimkan query tersebut ke API.
+
+   ```ts
+   // src/hooks/useProductsWithoutCookie.ts
+
+   import { useEffect, useState } from 'react';
+   import { ProductType } from '../types/ProductTypes';
+   import { getAllProductsWithoutCookie } from '../services/productServiceWithoutCookie';
+   import { useNavigate } from 'react-router-dom';
+
+   export const useProductsWithoutCookie = (
+     name: string | null,
+     category: string | null
+   ) => {
+     const navigate = useNavigate();
+     const [products, setProducts] = useState<ProductType[]>([]);
+     const [error, setError] = useState<string | null>(null);
+     const [isLoading, setIsLoading] = useState<boolean>(true);
+
+     useEffect(() => {
+       const getAllProducts = async () => {
+         try {
+           //------------------------------------------------------------------------------------------
+           const data = await getAllProductsWithoutCookie(
+             navigate,
+             name,
+             category
+           );
+           //------------------------------------------------------------------------------------------
+           setProducts(data);
+         } catch (error: any) {
+           setError(error.message);
+         } finally {
+           setIsLoading(false);
+         }
+       };
+
+       getAllProducts();
+       //------------------------------------------------------------------------------------------
+     }, [name, category, navigate]);
+     //------------------------------------------------------------------------------------------
+
+     return { products, error, isLoading };
+   };
+   ```
+
+3. Modifikasi Filter Component<br/>
+   Komponen Filter perlu disesuaikan agar nilai name dan category diambil dari query params.
+
+   ```ts
+   // src/components/Filter.tsx
+
+   import { Form, Link, useSearchParams } from 'react-router-dom';
+   import FormSelect from './form/FormSelect';
+   import FormInputWithoutState from './form/FormInputWithoutState';
+
+   const Filter = ({ resetLink }: { resetLink: string }) => {
+     //----------------------------------------------------------------------------------------------
+     const categories = ['Sepatu', 'Baju', 'Celana'];
+     const [searchParams] = useSearchParams();
+
+     const name = searchParams?.get('name') || '';
+     const category = searchParams?.get('category') || '';
+     //----------------------------------------------------------------------------------------------
+
+     return (
+       <Form
+         method="get"
+         className="bg-base-200 gap-x-4 gap-y-3 grid grid-cols-2 px-8 py-4 rounded-md"
+       >
+         <FormInputWithoutState
+           label="Search Product"
+           name="name"
+           type="search"
+           defaultValue={name}
+         />
+         <FormSelect
+           label="Select category"
+           name="category"
+           list={categories}
+           defaultValue={category}
+         />
+         <button type="submit" className="btn btn-primary">
+           Search
+         </button>
+         <Link to={resetLink} className="btn btn-accent">
+           Reset
+         </Link>
+       </Form>
+     );
+   };
+
+   export default Filter;
+   ```
+
+4. Modifikasi ProductViewWithoutCookie Component<br/>
+   Halaman produk akan diperbarui untuk mengambil query params name dan category dari URL dan meneruskannya ke custom hook.
+
+   ```ts
+   // src/pages/pages_without_cookie/ProductViewWithoutCookie.tsx
+
+   import ProductCard from '../../components/ProductCard';
+   import { useProductsWithoutCookie } from '../../hooks/useProductsWithoutCookie';
+   import LoadingSpinner from '../../components/LoadingSpinner';
+   import ErrorMessage from '../../components/ErrorMessage';
+   import Filter from '../../components/Filter';
+   import { useSearchParams } from 'react-router-dom';
+
+   const ProductViewWithoutCookie = () => {
+     //------------------------------------------------------------------------------------------------------
+     const [searchParams] = useSearchParams();
+     const name = searchParams?.get('name') || null;
+     const category = searchParams?.get('category');
+     //------------------------------------------------------------------------------------------------------
+
+     const { products, error, isLoading } = useProductsWithoutCookie(
+       name,
+       category
+     );
+
+     if (isLoading) {
+       return <LoadingSpinner />;
+     }
+
+     if (error) {
+       return <ErrorMessage message={error} />;
+     }
+
+     return (
+       <>
+         //------------------------------------------------------------------------------------------------------
+         <Filter resetLink="/without-cookie/products" />
+         //------------------------------------------------------------------------------------------------------
+         {/* <h3 className="text-primary text-3xl font-bold text-right">
+           Total: {pagination?.totalItems} Produk
+         </h3> */}
+         <div className="md:grid-cols-3 lg:grid-cols-4 grid grid-cols-2 gap-5 mt-5">
+           {!products?.length ? (
+             <h1 className="col-span-full text-3xl font-bold">
+               Produk tidak ditemukan
+             </h1>
+           ) : (
+             products?.map((product) => (
+               <ProductCard
+                 key={product?._id}
+                 name={product?.name}
+                 category={product?.category}
+                 description={product?.description}
+                 image={product?.image}
+                 _id={product?._id}
+                 price={product?.price}
+                 stock={product?.stock}
+               />
+             ))
+           )}
+         </div>
+       </>
+     );
+   };
+
+   export default ProductViewWithoutCookie;
+   ```
+
 ## Manage pages Menggunakan React Router Dom
 
 Berikut langkah - langkahnya [ref](https://www.youtube.com/watch?v=57fS83g11m8&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=6):
@@ -1477,7 +1695,7 @@ Kita bisa mengelola state untuk name, email, dan password dengan menggunakan cus
    export default FormAuth;
    ```
 
-##### Fetch API Dengan Middleware Auth Protected Tanpa Cookie
+##### Fetch API Dengan Middleware Auth Protected Dengan Cookie
 
 coming soon
 
