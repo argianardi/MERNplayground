@@ -15,6 +15,11 @@ import DetailProduct from './pages/DetailProduct';
 import { HomeLoader } from './pages/HomeView';
 import { ProductViewLoader } from './pages/ProductView';
 import ProtectedRoute from './components/ProtectedRoute';
+import RegisterWithoutCookies from './pages/auth/RegisterWithoutCookies';
+import ProtectedRouteWithoutCookie from './components/ProtectedRouteWithoutCookie';
+import PublicLayoutWithoutCookie from './layouts/PublicLayoutWithoutCookie';
+import LoginViewWithoutCookie from './pages/auth/LoginWithoutCookie';
+import ProductViewWithoutCookie from './pages/pages_without_cookie/ProductViewWithoutCookie';
 
 const router = createBrowserRouter([
   {
@@ -48,18 +53,58 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: 'cart-without-cookie',
+        element: (
+          <ProtectedRouteWithoutCookie>
+            <CartView />
+          </ProtectedRouteWithoutCookie>
+        ),
+      },
+      {
         path: 'about',
         element: <AboutView />,
       },
     ],
   },
   {
+    path: '/without-cookie',
+    element: <PublicLayoutWithoutCookie />,
+    children: [
+      { index: true, element: <HomeView /> },
+      {
+        path: 'cart',
+        element: (
+          <ProtectedRouteWithoutCookie>
+            <CartView />
+          </ProtectedRouteWithoutCookie>
+        ),
+      },
+      {
+        path: 'products',
+        element: (
+          <ProtectedRouteWithoutCookie>
+            <ProductViewWithoutCookie />
+          </ProtectedRouteWithoutCookie>
+        ),
+      },
+    ],
+  },
+
+  {
+    path: 'register',
+    element: <Register />,
+  },
+  {
     path: '/login',
     element: <LoginView />,
   },
   {
-    path: 'register',
-    element: <Register />,
+    path: 'register-without-cookie',
+    element: <RegisterWithoutCookies />,
+  },
+  {
+    path: '/login-without-cookie',
+    element: <LoginViewWithoutCookie />,
   },
 ]);
 
