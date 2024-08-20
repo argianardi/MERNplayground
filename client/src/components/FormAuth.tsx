@@ -70,7 +70,7 @@ const FormAuth = ({ isRegister }: { isRegister: boolean }) => {
     <div className="place-items-center grid h-screen">
       <form
         className="card w-96 bg-base-300 gap-y-4 flex flex-col p-8 shadow-lg"
-        onSubmit={(event) => handleSubmit(event, formData)}
+        onSubmit={(event) => handleSubmit(event)}
       >
         <h4 className="text-3xl font-bold text-center">
           {isRegister ? 'Register' : 'Login'}
