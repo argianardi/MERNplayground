@@ -1486,13 +1486,13 @@ coming soon
 #### Fitur Login dan Register Tanpa Cookies Dan Tanpa Global State
 
 1. Buat authService untuk Mengelola fetch api Register, sama seperti di fitur [register dengan cookies](#buat-auth-service)<br/>
-   authService yang sudah Kita buat sebenarnya sudah siap untuk menangani fitur register. Kita hanya perlu memanggilnya dengan URL yang sesuai ('/register') dan data yang diperlukan dari form register.
+   authService yang sudah Kita buat sebenarnya sudah siap untuk menangani fitur register. Kita hanya perlu memanggilnya dengan URL yang sesuai ('/register') atau ('/login') dan data yang diperlukan dari form register dan login.
 2. Update useAuth Hook untuk Login dan Registrasi<br/>
    Tambahkan logika di dalam useAuth hook untuk menangani register dengan token JWT yang tidak menggunakan cookie. Simpan token di localStorage atau sessionStorage.
 
    ```ts
    // src/hooks/useAuthWithoutCookies.ts
-   // src/hooks/useAut.ts
+   // src/hooks/useAuth.ts
 
    import { ChangeEvent, FormEvent, useState } from 'react';
    import { useNavigate } from 'react-router-dom';
@@ -1582,7 +1582,7 @@ coming soon
        try {
          const url = isRegister
            ? '/auth/register-without-cookie'
-           : '/auth/login';
+           : '/auth/login-without-cookie';
          const response = await authService(url, formData);
          console.log(response.data);
 
@@ -1705,8 +1705,157 @@ coming soon
    export default FormAuthWithoutCookies;
    ```
 
-4. Update ProtectedRoute Component
-   Pastikan ProtectedRoute sekarang memeriksa token dari localStorage atau sessionStorage (tergantung di mana kamu menyimpannya).
+4. Update ProtectedRoute Component<br/>
+   Ini merupakan cara untuk melindungi page di mana hanya user yang sudah login saja yang bisa mengakses page tersebut dengan menggunakan jwt token sebagai indikasinya. Pastikan ProtectedRoute sekarang memeriksa token dari localStorage atau sessionStorage (tergantung di mana kita menyimpannya).
+
+   1. Buat Komponen ProtectedRoute<br/>
+      Komponen ini memeriksa apakah user sudah login dengan memeriksa keberadaan token JWT di dalam localStorage atau sessionStorage. Jika tidak ada token, user akan diarahkan ke halaman login.
+
+      ```tsx
+      // src/components/ProtectedRouteWithoutCookie.tsx
+
+      import { ReactNode } from 'react';
+      import { Navigate } from 'react-router-dom';
+
+      const ProtectedRouteWithoutCookie = ({
+        children,
+      }: {
+        children: ReactNode;
+      }) => {
+        const isAuthenticated = !!localStorage.getItem('jwt');
+
+        if (!isAuthenticated) {
+          return <Navigate to={'/login-without-cookie'} />;
+        }
+
+        return <>{children}</>;
+      };
+
+      export default ProtectedRouteWithoutCookie;
+      ```
+
+   2. Gunakan ProtectedRoute di App atau Routes <br/>
+      Kemudian, gunakan ProtectedRoute di dalam konfigurasi React Router untuk membungkus halaman yang ingin dilindungi, contohnya page ProductViewWithoutCookie. ProtectedRoute digunakan untuk membungkus komponen ProductViewWithoutCookie. Jadi, jika user mencoba mengakses halaman ProductViewWithoutCookie tanpa login, mereka akan otomatis diarahkan ke halaman login.
+
+      ```tsx
+      import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
+      // Components
+      import PublicLayout from './layouts/PublicLayout';
+      import HomeView from './pages/HomeView';
+      import ProductView from './pages/ProductView';
+      import OrderView from './pages/OrderView';
+      import CartView from './pages/CartView';
+      import AboutView from './pages/AboutView';
+      import LoginView from './pages/auth/LoginView';
+      import Register from './pages/auth/Register';
+      import DetailProduct from './pages/DetailProduct';
+
+      // Loader
+      import { HomeLoader } from './pages/HomeView';
+      import { ProductViewLoader } from './pages/ProductView';
+      import ProtectedRoute from './components/ProtectedRoute';
+      import RegisterWithoutCookies from './pages/auth/RegisterWithoutCookies';
+      import ProtectedRouteWithoutCookie from './components/ProtectedRouteWithoutCookie';
+      import PublicLayoutWithoutCookie from './layouts/PublicLayoutWithoutCookie';
+      import LoginViewWithoutCookie from './pages/auth/LoginWithoutCookie';
+      import ProductViewWithoutCookie from './pages/pages_without_cookie/ProductViewWithoutCookie';
+
+      const router = createBrowserRouter([
+        {
+          path: '/',
+          element: <PublicLayout />,
+          children: [
+            {
+              index: true,
+              element: <HomeView />,
+              loader: HomeLoader,
+            },
+            {
+              path: 'products',
+              element: <ProductView />,
+              loader: ProductViewLoader,
+            },
+            {
+              path: 'products/:id',
+              element: <DetailProduct />,
+            },
+            {
+              path: 'orders',
+              element: <OrderView />,
+            },
+            {
+              path: 'cart',
+              element: (
+                <ProtectedRoute>
+                  <CartView />
+                </ProtectedRoute>
+              ),
+            },
+            {
+              path: 'cart-without-cookie',
+              element: (
+                <ProtectedRouteWithoutCookie>
+                  <CartView />
+                </ProtectedRouteWithoutCookie>
+              ),
+            },
+            {
+              path: 'about',
+              element: <AboutView />,
+            },
+          ],
+        },
+        {
+          path: '/without-cookie',
+          element: <PublicLayoutWithoutCookie />,
+          children: [
+            { index: true, element: <HomeView /> },
+            {
+              path: 'cart',
+              element: (
+                <ProtectedRouteWithoutCookie>
+                  <CartView />
+                </ProtectedRouteWithoutCookie>
+              ),
+            },
+            {
+              path: 'products',
+              element: (
+                //-------------------------------------------------------------------------------------------------------
+                <ProtectedRouteWithoutCookie>
+                  <ProductViewWithoutCookie />
+                </ProtectedRouteWithoutCookie>
+                //-------------------------------------------------------------------------------------------------------
+              ),
+            },
+          ],
+        },
+
+        {
+          path: 'register',
+          element: <Register />,
+        },
+        {
+          path: '/login',
+          element: <LoginView />,
+        },
+        {
+          path: 'register-without-cookie',
+          element: <RegisterWithoutCookies />,
+        },
+        {
+          path: '/login-without-cookie',
+          element: <LoginViewWithoutCookie />,
+        },
+      ]);
+
+      function App() {
+        return <RouterProvider router={router} />;
+      }
+
+      export default App;
+      ```
 
 ## Logout
 
