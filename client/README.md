@@ -1189,7 +1189,7 @@ Berikut beberapa langkah yang bisa kita lakukan:
           const isAuthenticated = !!Cookies.get('jwt');
           ```
 
-#### Mengapa Tidak Menggunakan useState untuk Input Form?
+##### Mengapa Tidak Menggunakan useState untuk Input Form?
 
 Alasan mengapa fitur login dan register pada komponen `FormAuth` tidak menggunakan state dan setState untuk mengelola nilai input seperti email, name, dan password adalah karena penggunaan onSubmit event pada form lebih sederhana dan efisien dalam konteks ini. Berikut adalah penjelasan lebih lanjut:
 
@@ -1210,7 +1210,7 @@ Alasan mengapa fitur login dan register pada komponen `FormAuth` tidak menggunak
    - Penggunaan di luar form submission<br/>
      Jika nilai dari input digunakan di tempat lain dalam komponen atau harus diperbarui secara dinamis sebelum submit, Anda mungkin ingin mengelola nilai input dengan state.
 
-#### Mengelola State dan Validasi Form Auth untuk Fitur Login dan Register dengan Custom Hook
+##### Mengelola State dan Validasi Form Auth untuk Fitur Login dan Register dengan Custom Hook
 
 Kita bisa mengelola state untuk name, email, dan password dengan menggunakan custom hook yang mengelola state dan validasi secara terpisah. Berikut adalah contoh penerapan tersebut:
 
@@ -1477,6 +1477,10 @@ Kita bisa mengelola state untuk name, email, dan password dengan menggunakan cus
    export default FormAuth;
    ```
 
+##### Fetch API Dengan Middleware Auth Protected Tanpa Cookie
+
+coming soon
+
 #### Fitur Login dan Register Dengan Cookies Dengan Global State
 
 coming soon
@@ -1735,7 +1739,7 @@ coming soon
       ```
 
    2. Gunakan ProtectedRoute di App atau Routes <br/>
-      Kemudian, gunakan ProtectedRoute di dalam konfigurasi React Router untuk membungkus halaman yang ingin dilindungi, contohnya page ProductViewWithoutCookie. ProtectedRoute digunakan untuk membungkus komponen ProductViewWithoutCookie. Jadi, jika user mencoba mengakses halaman ProductViewWithoutCookie tanpa login, mereka akan otomatis diarahkan ke halaman login.
+      Kemudian, gunakan ProtectedRoute di dalam konfigurasi React Router untuk membungkus halaman yang ingin dilindungi, contohnya page ProductViewWithoutCookie. ProtectedRoute digunakan untuk membungkus komponen ProductViewWithoutCookie. Jadi, jika user mencoba mengakses halaman ProductViewWithoutCookie tanpa login, maka user akan otomatis diarahkan ke halaman login.
 
       ```tsx
       import { createBrowserRouter, RouterProvider } from 'react-router-dom';
@@ -1856,6 +1860,143 @@ coming soon
 
       export default App;
       ```
+
+##### Fetch API Dengan Middleware Auth Protected Tanpa Cookie
+
+Untuk melakukan fetch ke endpoint yang dilindungi oleh middleware auth protected di sisi frontend, tanpa menggunakan cookie, kita perlu mengirimkan token JWT sebagai bagian dari header Authorization di setiap request yang dilakukan. Token JWT ini biasanya disimpan di localStorage atau sessionStorage setelah user berhasil login. Misalnya kita ingin melakukan fetch get all products yang API nya di-protect middleware [`authProtectedWithoutCookie`](https://github.com/argianardi/MERNplayground/tree/learn/server#middleware-auth-protected-tanpa-cookie) di sisi backend.
+
+1. Simpan Token JWT Setelah Login <br/>
+   Ketika user berhasil login, simpan token JWT yang diterima dari server di localStorage atau sessionStorage.
+2. Buat Method Untuk Fetch API dan Kirimkan Token di Header Authorization<br/>
+   Setelah token tersimpan, setiap kali kita ingin melakukan request ke endpoint yang dilindungi, kita harus menambahkan token tersebut ke dalam header Authorization. Jangan lupa, handle Expired atau Invalid Token. Jika token yang disimpan di localStorage atau sessionStorage sudah expired atau invalid, server akan mengembalikan status 401 Unauthorized. Kita bisa menghandle ini dengan mengarahkan user ke halaman login atau menampilkan pesan error.
+
+   ```ts
+   // src/services/productServiceWithoutCookie.ts
+
+   import { NavigateFunction } from 'react-router-dom';
+   import customAPI from '.';
+
+   // Get token from local storage
+   const token = localStorage.getItem('jwt');
+
+   export const getAllProductsWithoutCookie = async (
+     navigate: NavigateFunction
+   ) => {
+     try {
+       const response = await customAPI.get('/products/without-cookie', {
+         headers: {
+           Authorization: `Bearer ${token}`,
+         },
+       });
+
+       return response?.data?.data;
+     } catch (error: any) {
+       if (error?.response) {
+         if (error?.response?.status === 401) {
+           localStorage.removeItem('jwt');
+           navigate('/login-without-cookie');
+
+           throw new Error('Session expired, please log in again');
+         } else {
+           throw new Error(
+             error?.response?.data?.message || 'Something went wrong'
+           );
+         }
+       } else {
+         throw new Error('Network error');
+       }
+     }
+   };
+   ```
+
+3. Buat Custom Hook untuk Fetch Data<br/>
+   Buat custom hook untuk menangani pengambilan data produk dan manajemen state terkait.
+
+   ```ts
+   // src/hooks/useProductsWithoutCookie.ts
+
+   import { useEffect, useState } from 'react';
+   import { ProductType } from '../types/ProductTypes';
+   import { getAllProductsWithoutCookie } from '../services/productServiceWithoutCookie';
+   import { useNavigate } from 'react-router-dom';
+
+   export const useProductsWithoutCookie = () => {
+     const navigate = useNavigate();
+     const [products, setProducts] = useState<ProductType[]>([]);
+     const [error, setError] = useState<string | null>(null);
+     const [isLoading, setIsLoading] = useState<boolean>(true);
+
+     useEffect(() => {
+       const getAllProducts = async () => {
+         try {
+           const data = await getAllProductsWithoutCookie(navigate);
+           setProducts(data);
+         } catch (error: any) {
+           setError(error.message);
+         } finally {
+           setIsLoading(false);
+         }
+       };
+
+       getAllProducts();
+     }, []);
+
+     return { products, error, isLoading };
+   };
+   ```
+
+4. Buat Page untuk Menampilkan Data<br/>
+   Buat komponen page yang akan menampilkan data produk yang sudah di-fetch oleh custom hook `useProductsWithoutCookie` tadi.
+
+   ```tsx
+   // src/pages/pages_without_cookie/ProductViewWithoutCookie.tsx
+
+   import ProductCard from '../../components/ProductCard';
+   import { useProductsWithoutCookie } from '../../hooks/useProductsWithoutCookie';
+   import LoadingSpinner from '../../components/LoadingSpinner';
+   import ErrorMessage from '../../components/ErrorMessage';
+
+   const ProductViewWithoutCookie = () => {
+     const { products, error, isLoading } = useProductsWithoutCookie();
+
+     if (isLoading) {
+       return <LoadingSpinner />;
+     }
+
+     if (error) {
+       return <ErrorMessage message={error} />;
+     }
+
+     return (
+       <>
+         <div className="md:grid-cols-3 lg:grid-cols-4 grid grid-cols-2 gap-5 mt-5">
+           {!products?.length ? (
+             <h1 className="col-span-full text-3xl font-bold">
+               Produk tidak ditemukan
+             </h1>
+           ) : (
+             products?.map((product) => (
+               <ProductCard
+                 key={product?._id}
+                 name={product?.name}
+                 category={product?.category}
+                 description={product?.description}
+                 image={product?.image}
+                 _id={product?._id}
+                 price={product?.price}
+                 stock={product?.stock}
+               />
+             ))
+           )}
+         </div>
+       </>
+     );
+   };
+
+   export default ProductViewWithoutCookie;
+   ```
+
+#### Fitur Login dan Register Tanpa Cookies Dengan Global State
 
 ## Logout
 
