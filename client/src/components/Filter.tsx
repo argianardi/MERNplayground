@@ -1,17 +1,20 @@
-import { Form, Link, useLoaderData } from 'react-router-dom';
-import FormInput from './form/FormInput';
+import { Form, Link, useSearchParams } from 'react-router-dom';
 import FormSelect from './form/FormSelect';
+import FormInputWithoutState from './form/FormInputWithoutState';
 
-const Filter = () => {
+const Filter = ({ resetLink }: { resetLink: string }) => {
   const categories = ['Sepatu', 'Baju', 'Celana'];
-  const { params } = useLoaderData() as { params: { [key: string]: string } };
-  const { name, category } = params;
+  const [searchParams] = useSearchParams();
+
+  const name = searchParams?.get('name') || '';
+  const category = searchParams?.get('category') || '';
+
   return (
     <Form
       method="get"
-      className="grid grid-cols-2 px-8 py-4 rounded-md bg-base-200 gap-x-4 gap-y-3"
+      className="bg-base-200 gap-x-4 gap-y-3 grid grid-cols-2 px-8 py-4 rounded-md"
     >
-      <FormInput
+      <FormInputWithoutState
         label="Search Product"
         name="name"
         type="search"
@@ -21,12 +24,12 @@ const Filter = () => {
         label="Select category"
         name="category"
         list={categories}
-        defultValue={category}
+        defaultValue={category}
       />
       <button type="submit" className="btn btn-primary">
         Search
       </button>
-      <Link to={'/products'} className="btn btn-accent">
+      <Link to={resetLink} className="btn btn-accent">
         Reset
       </Link>
     </Form>
