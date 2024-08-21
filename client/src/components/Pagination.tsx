@@ -1,17 +1,20 @@
-import { useLoaderData, useLocation, useNavigate } from 'react-router-dom';
-import { ProductLoaderType } from '../types/ProductTypes';
+// src/components/Pagination.tsx
 
-const Pagination = () => {
-  const { pagination } = useLoaderData() as ProductLoaderType;
+import { useLocation, useNavigate } from 'react-router-dom';
+
+interface PaginationType {
+  totalItems: number;
+  pageSize: number;
+  totalPages: number;
+  currentPage: number;
+}
+
+const Pagination = ({ pagination }: { pagination: PaginationType }) => {
   const { currentPage, totalPages } = pagination;
   const { search, pathname } = useLocation();
   const navigation = useNavigate();
 
   const handleChangePage = (page: number) => {
-    console.log(page);
-    console.log(search);
-    console.log(pathname);
-
     const searchParams = new URLSearchParams(search);
     searchParams.set('page', page.toString());
     navigation(`${pathname}?${searchParams.toString()}`);
