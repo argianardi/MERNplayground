@@ -42,7 +42,7 @@ import { authService } from '../services/authService';
 
 // Menggunaakan state management dan validasi
 interface useAuthReturnType {
-  handleSubmit: (Event: FormEvent, fields: FormDataType) => void;
+  handleSubmit: (Event: FormEvent) => void;
   handleChange: (event: ChangeEvent<HTMLInputElement>) => void;
   logout: () => void;
   errors: ErrorsType;
@@ -111,7 +111,7 @@ const useAuth = (isRegister: boolean): useAuthReturnType => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (event: FormEvent, fields: FormDataType) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
     setErrors({});
@@ -125,7 +125,7 @@ const useAuth = (isRegister: boolean): useAuthReturnType => {
 
     try {
       const url = isRegister ? '/auth/register' : '/auth/login';
-      await authService(url, fields);
+      await authService(url, formData);
 
       if (isRegister) {
         navigate('/login');
