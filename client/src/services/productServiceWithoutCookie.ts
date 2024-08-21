@@ -4,11 +4,21 @@ import customAPI from '.';
 // Get token from local storage
 const token = localStorage.getItem('jwt');
 
-export const getAllProductsWithoutCookie = async (
-  navigate: NavigateFunction,
-  name: string | null,
-  category: string | null
-) => {
+interface GetAllProductsPropsType {
+  navigate: NavigateFunction;
+  name: string | null;
+  category: string | null;
+  page: number;
+  limit: number;
+}
+
+export const getAllProductsWithoutCookie = async ({
+  navigate,
+  name,
+  category,
+  page = 1,
+  limit = 10,
+}: GetAllProductsPropsType) => {
   try {
     const response = await customAPI.get('/products/without-cookie', {
       headers: {
@@ -17,10 +27,13 @@ export const getAllProductsWithoutCookie = async (
       params: {
         name,
         category,
+        page,
+        limit,
       },
     });
+    // console.log(response.data.data);
 
-    return response?.data?.data;
+    return response?.data;
   } catch (error: any) {
     if (error?.response) {
       if (error?.response?.status === 401) {
