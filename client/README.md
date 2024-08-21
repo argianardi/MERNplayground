@@ -340,6 +340,271 @@ Kali ini kita akan membuat fitur search untuk product yang sebelumnya sudah kita
    export default ProductViewWithoutCookie;
    ```
 
+### Fitur Pagination Tanpa Use Loader
+
+Untuk menambahkan fitur pagination pada project yang kita tambahkan [fitur searching](#fitur-search-tanpa-use-loader) tadi, kita perlu mengintegrasikan logika pagination dari backend ke frontend. Berikut langkah-langkah yang perlu dilakukan:
+
+1. Memodifikasi API Request di getAllProductsWithoutCookie <br/>
+   Kita perlu menambahkan parameter page dan limit ke dalam request API agar backend bisa mengembalikan data sesuai dengan halaman yang diinginkan.
+
+   ```ts
+   // src/services/productServiceWithoutCookie.ts
+
+   import { NavigateFunction } from 'react-router-dom';
+   import customAPI from '.';
+
+   // Get token from local storage
+   const token = localStorage.getItem('jwt');
+
+   interface GetAllProductsPropsType {
+     navigate: NavigateFunction;
+     name: string | null;
+     category: string | null;
+     //----------------------------------------------------------------------------------------------------------
+     page: number;
+     limit: number;
+     //----------------------------------------------------------------------------------------------------------
+   }
+
+   export const getAllProductsWithoutCookie = async ({
+     navigate,
+     name,
+     category,
+     //----------------------------------------------------------------------------------------------------------
+     page = 1,
+     limit = 10,
+   }: //----------------------------------------------------------------------------------------------------------
+   GetAllProductsPropsType) => {
+     try {
+       const response = await customAPI.get('/products/without-cookie', {
+         headers: {
+           Authorization: `Bearer ${token}`,
+         },
+         params: {
+           name,
+           category,
+           //----------------------------------------------------------------------------------------------------------
+           page,
+           limit,
+           //----------------------------------------------------------------------------------------------------------
+         },
+       });
+       // console.log(response.data.data);
+
+       return response?.data;
+     } catch (error: any) {
+       if (error?.response) {
+         if (error?.response?.status === 401) {
+           localStorage.removeItem('jwt');
+           navigate('/login-without-cookie');
+
+           throw new Error('Session expired, please log in again');
+         } else {
+           throw new Error(
+             error?.response?.data?.message || 'Something went wrong'
+           );
+         }
+       } else {
+         throw new Error('Network error');
+       }
+     }
+   };
+   ```
+
+2. Memodifikasi useProductsWithoutCookie Hook<br/>
+   Agar pagination dapat berfungsi, tambahkan state untuk menyimpan informasi pagination seperti currentPage, totalPages, dan lainnya.
+
+   ```ts
+   // src/hooks/useProductsWithoutCookie.ts
+
+   import { useEffect, useState } from 'react';
+   import { ProductType } from '../types/ProductTypes';
+   import { getAllProductsWithoutCookie } from '../services/productServiceWithoutCookie';
+   import { useNavigate } from 'react-router-dom';
+
+   //----------------------------------------------------------------------------------------------
+   interface PaginationType {
+     totalItems: number;
+     pageSize: number;
+     totalPages: number;
+     currentPage: number;
+   }
+   //----------------------------------------------------------------------------------------------
+
+   export const useProductsWithoutCookie = (
+     name: string | null,
+     category: string | null,
+     page: number
+   ) => {
+     const navigate = useNavigate();
+     const [products, setProducts] = useState<ProductType[]>([]);
+     //----------------------------------------------------------------------------------------------
+     const [pagination, setPagination] = useState<PaginationType | null>(null);
+     //----------------------------------------------------------------------------------------------
+     const [error, setError] = useState<string | null>(null);
+     const [isLoading, setIsLoading] = useState<boolean>(true);
+
+     useEffect(() => {
+       const getAllProducts = async () => {
+         try {
+           const data = await getAllProductsWithoutCookie({
+             navigate,
+             name,
+             category,
+             //----------------------------------------------------------------------------------------------
+             page,
+             limit: 10,
+           });
+
+           setProducts(data.data);
+           setPagination(data.pagination);
+           //----------------------------------------------------------------------------------------------
+         } catch (error: any) {
+           setError(error.message);
+         } finally {
+           setIsLoading(false);
+         }
+       };
+
+       getAllProducts();
+       //----------------------------------------------------------------------------------------------
+     }, [name, category, page, navigate]);
+
+     return { products, pagination, error, isLoading };
+     //----------------------------------------------------------------------------------------------
+   };
+   ```
+
+3. Memodifikasi Pagination Component<br/>
+   Komponen Pagination perlu menerima prop pagination dari ProductViewWithoutCookie dan menampilkan tombol pagination berdasarkan data tersebut.
+
+   ```tsx
+   // src/components/Pagination.tsx
+
+   import { useLocation, useNavigate } from 'react-router-dom';
+
+   // -------------------------------------------------------------------------------------------
+   interface PaginationType {
+     totalItems: number;
+     pageSize: number;
+     totalPages: number;
+     currentPage: number;
+   }
+   // -------------------------------------------------------------------------------------------
+
+   // -------------------------------------------------------------------------------------------
+   const Pagination = ({ pagination }: { pagination: PaginationType }) => {
+     // -------------------------------------------------------------------------------------------
+     const { currentPage, totalPages } = pagination;
+     const { search, pathname } = useLocation();
+     const navigation = useNavigate();
+
+     const handleChangePage = (page: number) => {
+       const searchParams = new URLSearchParams(search);
+       searchParams.set('page', page.toString());
+       navigation(`${pathname}?${searchParams.toString()}`);
+     };
+
+     const pages = Array.from({ length: totalPages }, (_, index) => {
+       return index + 1;
+     });
+
+     return (
+       <div className="join">
+         {pages?.map((pageNumber) => (
+           <button
+             key={pageNumber}
+             className={`btn btn-md border-none join-item ${
+               currentPage === pageNumber ? 'btn-primary' : ''
+             }`}
+             onClick={() => handleChangePage(pageNumber)}
+           >
+             {pageNumber}
+           </button>
+         ))}
+       </div>
+     );
+   };
+
+   export default Pagination;
+   ```
+
+4. Memodifikasi ProductViewWithoutCookie Component<br/>
+   Pastikan kita menggunakan query parameter page dari URL untuk menandai halaman yang sedang dilihat, dan meneruskannya ke useProductsWithoutCookie. Setelah itu, tampilkan Pagination component yang sudah kita buat.
+
+   ```tsx
+   // src/pages/pages_without_cookie/ProductViewWithoutCookie.tsx
+
+   import ProductCard from '../../components/ProductCard';
+   import { useProductsWithoutCookie } from '../../hooks/useProductsWithoutCookie';
+   import LoadingSpinner from '../../components/LoadingSpinner';
+   import ErrorMessage from '../../components/ErrorMessage';
+   import Filter from '../../components/Filter';
+   import { useSearchParams } from 'react-router-dom';
+   import Pagination from '../../components/Pagination';
+
+   const ProductViewWithoutCookie = () => {
+     const [searchParams] = useSearchParams();
+     const name = searchParams?.get('name') || null;
+     const category = searchParams?.get('category');
+     //----------------------------------------------------------------------------------------------------
+
+     const page = parseInt(searchParams.get('page') || '1', 10);
+
+     const { products, pagination, error, isLoading } =
+       useProductsWithoutCookie(name, category, page);
+     //----------------------------------------------------------------------------------------------------
+
+     if (isLoading) {
+       return <LoadingSpinner />;
+     }
+
+     if (error) {
+       return <ErrorMessage message={error} />;
+     }
+
+     return (
+       <>
+         <Filter resetLink="/without-cookie/products" />
+         <h3 className="text-primary text-3xl font-bold text-right">
+           Total: {pagination?.totalItems} Produk
+         </h3>
+         <div className="md:grid-cols-3 lg:grid-cols-4 grid grid-cols-2 gap-5 mt-5">
+           {!products?.length ? (
+             <h1 className="col-span-full text-3xl font-bold">
+               Produk tidak ditemukan
+             </h1>
+           ) : (
+             products?.map((product) => (
+               <ProductCard
+                 key={product?._id}
+                 name={product?.name}
+                 category={product?.category}
+                 description={product?.description}
+                 image={product?.image}
+                 _id={product?._id}
+                 price={product?.price}
+                 stock={product?.stock}
+               />
+             ))
+           )}
+         </div>
+         //----------------------------------------------------------------------------------------------------
+         {pagination && (
+           <div className="flex justify-center mt-5">
+             <Pagination pagination={pagination} />
+           </div>
+         )}
+         //----------------------------------------------------------------------------------------------------
+       </>
+     );
+   };
+
+   export default ProductViewWithoutCookie;
+   ```
+
+Dengan perubahan ini, pagination seharusnya berjalan dengan baik di halaman ProductViewWithoutCookie. Ketika user mengklik tombol pagination, halaman produk akan diperbarui sesuai dengan page yang dipilih tanpa perlu me-refresh secara manual.
+
 ## Manage pages Menggunakan React Router Dom
 
 Berikut langkah - langkahnya [ref](https://www.youtube.com/watch?v=57fS83g11m8&list=PLBAY64k6bSAc5xoYSDyh09_1BdfHxwdQY&index=6):
