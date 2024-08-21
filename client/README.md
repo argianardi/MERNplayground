@@ -1974,6 +1974,7 @@ coming soon
 
 1. Buat authService untuk Mengelola fetch api Register, sama seperti di fitur [register dengan cookies](#buat-auth-service)<br/>
    authService yang sudah Kita buat sebenarnya sudah siap untuk menangani fitur register. Kita hanya perlu memanggilnya dengan URL yang sesuai ('/register') atau ('/login') dan data yang diperlukan dari form register dan login.
+   <a id="use-auth-without-cookie"/>
 2. Update useAuth Hook untuk Login dan Registrasi<br/>
    Tambahkan logika di dalam useAuth hook untuk menangani register dengan token JWT yang tidak menggunakan cookie. Simpan token di localStorage atau sessionStorage.
 
@@ -2723,3 +2724,196 @@ Ketika user logout, server menghapus cookie yang berisi token dengan mengirimkan
    ```
 
 ### Logout untuk Login & Register Tanpa Cookies
+
+Untuk membuat fungsi logout dalam konteks custom hook useAuthWithoutCookies, kita harus melakukan hal - hal berikut:
+
+- Hapus token dari localStorage<br/>
+  Saat pengguna logout, kita perlu memastikan token yang disimpan di localStorage dihapus.
+- Arahkan pengguna ke halaman login<br/>
+  Setelah token dihapus, pengguna bisa diarahkan kembali ke halaman login atau halaman lain yang sesuai.
+- Reset state (opsional)<br/>
+  kita mungkin juga ingin mereset state yang terkait dengan data pengguna setelah logout.
+
+Berikut langkah - langkah untuk membuat fitur logout tanpa cookie:
+
+- Buat Function Logout <br/>
+  Buat function logout di custom [useAuthWithoutCookie](#use-auth-without-cookie) yang sudah kita buat untuk fitur login dan register
+
+  ```ts
+  // src/hooks/useAuthWithoutCookies.ts
+
+  import { ChangeEvent, FormEvent, useState } from 'react';
+  import { useNavigate } from 'react-router-dom';
+  import { authService } from '../services/authService';
+
+  interface FormDataType {
+    name: string;
+    email: string;
+    password: string;
+  }
+
+  interface ErrorsType {
+    name?: string;
+    email?: string;
+    password?: string;
+    apiError?: string;
+  }
+
+  interface UseAuthReturnType {
+    handleSubmit: (event: FormEvent) => void;
+    handleChange: (event: ChangeEvent<HTMLInputElement>) => void;
+    logout: () => void;
+    errors: ErrorsType;
+    isLoading: boolean;
+    formData: FormDataType;
+  }
+
+  const useAuthWithoutCookies = (isRegister: boolean): UseAuthReturnType => {
+    const [formData, setFormData] = useState<FormDataType>({
+      name: '',
+      email: '',
+      password: '',
+    });
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [errors, setErrors] = useState<ErrorsType>({});
+    const navigate = useNavigate();
+
+    const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = event.target;
+      setFormData((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+
+      // Clear error for the modified field
+      setErrors((prevErrors) => ({ ...prevErrors, [name]: '' }));
+    };
+
+    // Validate form data and set error messages
+    const validateForm = (): boolean => {
+      const { name, email, password } = formData;
+      const newErrors: ErrorsType = {};
+
+      if (isRegister && !name) {
+        newErrors.name = 'Name is required';
+      } else if (name?.length < 3 && isRegister) {
+        newErrors.name = 'Name must be at least 3 characters';
+      }
+
+      if (!email) {
+        newErrors.email = 'Email is required';
+      } else if (!/\S+@\S+\.\S+/.test(email)) {
+        newErrors.email = 'Invalid email address';
+      }
+
+      if (!password) {
+        newErrors.password = 'Password is required';
+      } else if (password?.length < 3) {
+        newErrors.password = 'Password must be at least 3 characters';
+      }
+
+      setErrors(newErrors);
+
+      return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = async (event: FormEvent) => {
+      event.preventDefault();
+      setIsLoading(true);
+      setErrors({});
+
+      const isValid = validateForm();
+      if (!isValid) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const url = isRegister
+          ? '/auth/register-without-cookie'
+          : '/auth/login-without-cookie';
+        const response = await authService(url, formData);
+        console.log(response);
+
+        if (response?.data?.token) {
+          localStorage.setItem('jwt', response?.data?.token);
+          navigate(isRegister ? '/login' : '/');
+        }
+      } catch (error: any) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          apiError: error?.message,
+        }));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Logout
+    const logout = () => {
+      localStorage.removeItem('jwt');
+      navigate('/login-without-cookie');
+    };
+
+    return {
+      handleSubmit,
+      handleChange,
+      logout,
+      errors,
+      isLoading,
+      formData,
+    };
+  };
+
+  export default useAuthWithoutCookies;
+  ```
+
+- Penggunaan Fungsi Logout <br/>
+  Setelah kita menambahkan fungsi logout di dalam custom hook, kita bisa menggunakannya di komponen lain yang memerlukan fungsi logout
+
+  ```tsx
+  // src/components/HeaderWithoutCookie.tsx
+
+  import { Link } from 'react-router-dom';
+  import useAuthWithoutCookies from '../hooks/useAuthWithoutCookies';
+
+  const HeaderWithoutCookie = () => {
+    const isAuthenticated = !!localStorage.getItem('jwt');
+    const { logout } = useAuthWithoutCookies(false);
+
+    return (
+      <header className="bg-neutral text-neutral-content py-2">
+        Header without cookie
+        {isAuthenticated ? (
+          <div className="sm:justify-end flex justify-end max-w-6xl px-8 mx-auto border">
+            <button
+              className="link link-hover sm:text-sm text-xs"
+              onClick={logout}
+            >
+              Logout
+            </button>
+          </div>
+        ) : (
+          <div className="sm:justify-end flex justify-center max-w-6xl px-8 mx-auto border">
+            <div className="gap-x-6 flex items-center justify-center">
+              <Link
+                to={'/login'}
+                className="link link-hover sm:text-sm text-xs"
+              >
+                Sign
+              </Link>
+              <Link
+                to={'/register'}
+                className="link link-hover sm:text-sm text-xs"
+              >
+                Create Account
+              </Link>
+            </div>
+          </div>
+        )}
+      </header>
+    );
+  };
+
+  export default HeaderWithoutCookie;
+  ```
