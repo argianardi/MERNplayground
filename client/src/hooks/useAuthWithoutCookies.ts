@@ -18,6 +18,7 @@ interface ErrorsType {
 interface UseAuthReturnType {
   handleSubmit: (event: FormEvent) => void;
   handleChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  logout: () => void;
   errors: ErrorsType;
   isLoading: boolean;
   formData: FormDataType;
@@ -101,9 +102,16 @@ const useAuthWithoutCookies = (isRegister: boolean): UseAuthReturnType => {
     }
   };
 
+  // Logout
+  const logout = () => {
+    localStorage.removeItem('jwt');
+    navigate('/login-without-cookie');
+  };
+
   return {
     handleSubmit,
     handleChange,
+    logout,
     errors,
     isLoading,
     formData,
