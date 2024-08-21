@@ -3,7 +3,10 @@ import { ProductType } from '../types/ProductTypes';
 import { getAllProductsWithoutCookie } from '../services/productServiceWithoutCookie';
 import { useNavigate } from 'react-router-dom';
 
-export const useProductsWithoutCookie = () => {
+export const useProductsWithoutCookie = (
+  name: string | null,
+  category: string | null
+) => {
   const navigate = useNavigate();
   const [products, setProducts] = useState<ProductType[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -12,7 +15,11 @@ export const useProductsWithoutCookie = () => {
   useEffect(() => {
     const getAllProducts = async () => {
       try {
-        const data = await getAllProductsWithoutCookie(navigate);
+        const data = await getAllProductsWithoutCookie(
+          navigate,
+          name,
+          category
+        );
         setProducts(data);
       } catch (error: any) {
         setError(error.message);
@@ -22,7 +29,7 @@ export const useProductsWithoutCookie = () => {
     };
 
     getAllProducts();
-  }, []);
+  }, [name, category, navigate]);
 
   return { products, error, isLoading };
 };
