@@ -2762,7 +2762,9 @@ Berikut langkah - langkah untuk membuat fitur logout tanpa cookie:
   interface UseAuthReturnType {
     handleSubmit: (event: FormEvent) => void;
     handleChange: (event: ChangeEvent<HTMLInputElement>) => void;
+    //--------------------------------------------------------------------------------------------
     logout: () => void;
+    //--------------------------------------------------------------------------------------------
     errors: ErrorsType;
     isLoading: boolean;
     formData: FormDataType;
@@ -2849,16 +2851,20 @@ Berikut langkah - langkah untuk membuat fitur logout tanpa cookie:
       }
     };
 
+    //--------------------------------------------------------------------------------------------
     // Logout
     const logout = () => {
       localStorage.removeItem('jwt');
       navigate('/login-without-cookie');
     };
+    //--------------------------------------------------------------------------------------------
 
     return {
       handleSubmit,
       handleChange,
+      //--------------------------------------------------------------------------------------------
       logout,
+      //--------------------------------------------------------------------------------------------
       errors,
       isLoading,
       formData,
@@ -2879,12 +2885,15 @@ Berikut langkah - langkah untuk membuat fitur logout tanpa cookie:
 
   const HeaderWithoutCookie = () => {
     const isAuthenticated = !!localStorage.getItem('jwt');
+    //--------------------------------------------------------------------------------------------
     const { logout } = useAuthWithoutCookies(false);
+    //--------------------------------------------------------------------------------------------
 
     return (
       <header className="bg-neutral text-neutral-content py-2">
         Header without cookie
         {isAuthenticated ? (
+          //--------------------------------------------------------------------------------------------
           <div className="sm:justify-end flex justify-end max-w-6xl px-8 mx-auto border">
             <button
               className="link link-hover sm:text-sm text-xs"
@@ -2894,6 +2903,7 @@ Berikut langkah - langkah untuk membuat fitur logout tanpa cookie:
             </button>
           </div>
         ) : (
+          //--------------------------------------------------------------------------------------------
           <div className="sm:justify-end flex justify-center max-w-6xl px-8 mx-auto border">
             <div className="gap-x-6 flex items-center justify-center">
               <Link
