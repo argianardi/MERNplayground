@@ -7,7 +7,7 @@ export const authService = async (url: string, data: Record<string, any>) => {
     const response = await customAPI.post(url, data);
     console.log(response);
 
-    return response.data.data;
+    return response.data;
   } catch (error: any) {
     if (error.response) {
       throw new Error(error?.response.data.message || 'Something went wrong');
