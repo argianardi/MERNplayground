@@ -5,12 +5,18 @@ import customAPI from '.';
 const token = localStorage.getItem('jwt');
 
 export const getAllProductsWithoutCookie = async (
-  navigate: NavigateFunction
+  navigate: NavigateFunction,
+  name: string | null,
+  category: string | null
 ) => {
   try {
     const response = await customAPI.get('/products/without-cookie', {
       headers: {
         Authorization: `Bearer ${token}`,
+      },
+      params: {
+        name,
+        category,
       },
     });
 
