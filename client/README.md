@@ -1962,7 +1962,130 @@ Kita bisa mengelola state untuk name, email, dan password dengan menggunakan cus
 
 ##### Fetch API Dengan Middleware Auth Protected Dengan Cookie
 
-coming soon
+Jika kita menggunakan [authProtected dengan cookie](https://github.com/argianardi/MERNplayground/tree/learn/server#middleware-auth-protected-dengan-cookie) di sisi backend, kita tidak perlu secara eksplisit menambahkan token JWT di header Authorization pada setiap request. Sebagai gantinya, ketika user berhasil login, token JWT akan disimpan sebagai cookie di browser, dan cookie ini akan secara otomatis dikirim bersama setiap request ke server. Sebagai contoh kita akan melakukan fetch get all products pada api yang di-protect oleh middleware auth protected menggunakan cookie. Untuk mengakses produk yang dilindungi oleh middleware otentikasi di frontend, kita perlu melakukan beberapa langkah:
+
+1. Buat Service untuk Fetch Produk<br/>
+   Fungsi ini digunakan untuk mengirim request endpoint /products untuk mengambil data produk. Jika terjadi kesalahan, fungsi ini akan melempar error yang dapat ditangani di custom hook ini.
+
+   ```ts
+   // src/services/productServiceWithCooke.ts
+
+   import customAPI from '.';
+
+   export const getAllProductsWithCookie = async () => {
+     try {
+       const response = await customAPI.get('/products');
+       return response.data;
+     } catch (error: any) {
+       if (error.response) {
+         throw new Error(
+           error?.response.data.message || 'Something went wrong'
+         );
+       } else {
+         throw new Error('Network error');
+       }
+     }
+   };
+   ```
+
+2. Buat custom hook untuk mengelola fetch data produk<br/>
+   Custom hook ini bertugas untuk mengelola state data produk, error, dan status loading. Hook ini menggunakan useEffect untuk memanggil productService ketika komponen yang menggunakan hook ini pertama kali dirender.
+
+   ```ts
+   // src/hooks/useProductsWithCookie.ts
+
+   import { useEffect, useState } from 'react';
+   import { ProductType } from '../types/ProductTypes';
+   import { getAllProductsWithCookie } from '../services/productServiceWithCooke';
+
+   interface UseProductsWithCookieReturnType {
+     products: ProductType[];
+     error: string | null;
+     isLoading: boolean;
+   }
+
+   export const useProductsWithCookie = (): UseProductsWithCookieReturnType => {
+     const [products, setProducts] = useState<ProductType[]>([]);
+     const [error, setError] = useState<string | null>(null);
+     const [isLoading, setIsLoading] = useState<boolean>(true);
+
+     useEffect(() => {
+       const getAllProducts = async () => {
+         try {
+           const data = await getAllProductsWithCookie();
+           setProducts(data?.data);
+           // console.log(data);
+         } catch (error: any) {
+           setError(error.message);
+         } finally {
+           setIsLoading(false);
+         }
+       };
+
+       getAllProducts();
+     }, []);
+
+     return { products, error, isLoading };
+   };
+
+   export default useProductsWithCookie;
+   ```
+
+3. Tampilkan data tersebut di komponen React.<br/>
+   Komponen ini menggunakan custom hook useProductsWithoutCookie untuk mengambil data produk. Jika data sedang dimuat (isLoading true), komponen akan menampilkan komponen Loading. Jika terjadi error, komponen akan menampilkan pesan error. Jika data berhasil diambil, komponen akan menampilkan daftar produk.
+
+   ```tsx
+   // src/pages/ProductView.tsx
+
+   import ProductCard from '../components/ProductCard';
+   import useProductsWithCookie from '../hooks/useProductsWithCookie';
+   import LoadingSpinner from '../components/LoadingSpinner';
+   import ErrorMessage from '../components/ErrorMessage';
+
+   const ProductView = () => {
+     const { products, error, isLoading } = useProductsWithCookie();
+
+     if (isLoading) {
+       return <LoadingSpinner />;
+     }
+
+     if (error) {
+       return <ErrorMessage message={error} />;
+     }
+
+     return (
+       <>
+         {/* <Filter /> */}
+         {/* <h3 className="text-primary text-3xl font-bold text-right">
+           Total: {pagination?.totalItems} Produk
+         </h3> */}
+         <div className="md:grid-cols-3 lg:grid-cols-4 grid grid-cols-2 gap-5 mt-5">
+           {!products?.length ? (
+             <h1 className="col-span-full text-3xl font-bold">
+               Produk tidak ditemukan
+             </h1>
+           ) : (
+             products?.map((product) => (
+               <ProductCard
+                 key={product?._id}
+                 name={product?.name}
+                 category={product?.category}
+                 description={product?.description}
+                 image={product?.image}
+                 _id={product?._id}
+                 price={product?.price}
+                 stock={product?.stock}
+               />
+             ))
+           )}
+         </div>
+         <div className="flex justify-center mt-5">{/* <Pagination /> */}</div>
+       </>
+     );
+   };
+
+   export default ProductView;
+   ```
 
 #### Fitur Login dan Register Dengan Cookies Dengan Global State
 
@@ -2486,7 +2609,7 @@ Untuk melakukan fetch ke endpoint yang dilindungi oleh middleware auth protected
 
 ### Logout dengan Menghapus Cookies
 
-Ketika user logout, server menghapus cookie yang berisi token dengan mengirimkan cookie kosong yang segera kedaluwarsa. Ini dilakukan dengan menetapkan expires pada waktu yang sudah berlalu, sehingga browser secara otomatis menghapus cookie token tersebut. Kita juga harus mengarahkan user kembali ke halaman login atau halaman lain setelah logout. Berikut adalah langkah-langkah dan contoh implementasinya:
+Cara Logout seperti ini cocok di implementasikan ketika kita menerapkan [login & register menggunakan cookie](#fitur-login-dan-register-dengan-cookies). Ketika user logout, server menghapus cookie yang berisi token dengan mengirimkan cookie kosong yang segera kedaluwarsa. Ini dilakukan dengan menetapkan expires pada waktu yang sudah berlalu, sehingga browser secara otomatis menghapus cookie token tersebut. Kita juga harus mengarahkan user kembali ke halaman login atau halaman lain setelah logout. Berikut adalah langkah-langkah dan contoh implementasinya:
 
 1. Buat Fungsi Logout di authService <br/>
    Fungsi logout ini akan memanggil [API logout di backend](https://github.com/argianardi/MERNplayground/tree/learn/server#proteksi-endpoint-logout-dan-get-user), yang akan menghapus cookie JWT di server dan mengarahkan user ke halaman login.
