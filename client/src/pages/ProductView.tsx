@@ -1,37 +1,40 @@
-import { useLoaderData } from 'react-router-dom';
-import customAPI from '../api';
-import { ProductLoaderType } from '../types/ProductTypes';
-import Filter from '../components/Filter';
 import ProductCard from '../components/ProductCard';
+import useProductsWithCookie from '../hooks/useProductsWithCookie';
+import LoadingSpinner from '../components/LoadingSpinner';
+import ErrorMessage from '../components/ErrorMessage';
+import Filter from '../components/Filter';
+import { useSearchParams } from 'react-router-dom';
 import Pagination from '../components/Pagination';
 
-export const ProductViewLoader = async ({ request }: { request: Request }) => {
-  const params = Object.fromEntries([
-    ...new URL(request?.url).searchParams.entries(),
-  ]);
-
-  const response = await customAPI.get('/products', { params: params });
-  console.log('request', request);
-  console.log('params', params);
-
-  const products = response?.data?.data;
-  const pagination = response.data?.pagination;
-
-  return { products, params, pagination };
-};
-
 const ProductView = () => {
-  const { products, pagination } = useLoaderData() as ProductLoaderType;
+  const [searchParams] = useSearchParams();
+  const name = searchParams?.get('name') || null;
+  const category = searchParams?.get('category') || null;
+  const page = parseInt(searchParams.get('page') || '1', 10);
+
+  const { products, pagination, error, isLoading } = useProductsWithCookie(
+    name,
+    category,
+    page
+  );
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
 
   return (
     <>
-      <Filter />
-      <h3 className="text-3xl font-bold text-right text-primary">
+      <Filter resetLink="/products" />
+      <h3 className="text-primary text-3xl font-bold text-right">
         Total: {pagination?.totalItems} Produk
       </h3>
-      <div className="grid grid-cols-2 gap-5 mt-5 md:grid-cols-3 lg:grid-cols-4">
+      <div className="md:grid-cols-3 lg:grid-cols-4 grid grid-cols-2 gap-5 mt-5">
         {!products?.length ? (
-          <h1 className="text-3xl font-bold col-span-full">
+          <h1 className="col-span-full text-3xl font-bold">
             Produk tidak ditemukan
           </h1>
         ) : (
@@ -49,9 +52,12 @@ const ProductView = () => {
           ))
         )}
       </div>
-      <div className="flex justify-center mt-5">
-        <Pagination />
-      </div>
+      {pagination && (
+        <div className="flex justify-center mt-5">
+          {' '}
+          <Pagination pagination={pagination} />{' '}
+        </div>
+      )}
     </>
   );
 };
