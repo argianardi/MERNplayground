@@ -11,9 +11,7 @@ import LoginView from './pages/auth/LoginView';
 import Register from './pages/auth/Register';
 import DetailProduct from './pages/DetailProduct';
 
-// Loader
 import { HomeLoader } from './pages/HomeView';
-import { ProductViewLoader } from './pages/ProductView';
 import ProtectedRoute from './components/ProtectedRoute';
 import RegisterWithoutCookies from './pages/auth/RegisterWithoutCookies';
 import ProtectedRouteWithoutCookie from './components/ProtectedRouteWithoutCookie';
@@ -33,8 +31,11 @@ const router = createBrowserRouter([
       },
       {
         path: 'products',
-        element: <ProductView />,
-        loader: ProductViewLoader,
+        element: (
+          <ProtectedRoute>
+            <ProductView />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'products/:id',
